@@ -33,4 +33,11 @@ uv run test/test_import.py
 ```
 
 # Contributing
-1.
+1. Install all dependencies with `uv sync`
+2. Make your changes
+3. Use `ruff` to lint
+
+```
+ruff check              # run lint checks
+ruff check --fix        # run lint checks and auto fix
+```

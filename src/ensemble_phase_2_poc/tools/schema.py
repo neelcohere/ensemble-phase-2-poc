@@ -1,6 +1,4 @@
-from typing import Annotated
 from pydantic import BaseModel, Field
-from langchain.tools import InjectedToolArg
 
 
 class GetAccountDataInput(BaseModel):

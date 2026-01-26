@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 from langchain.tools import BaseTool
 from ensemble_phase_2_poc.tools.schema import (
     GetAccountDataInput,

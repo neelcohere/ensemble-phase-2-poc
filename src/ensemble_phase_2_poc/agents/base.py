@@ -102,7 +102,7 @@ class BaseAgent(ABC):
     ) -> CompiledStateGraph:
         """Agent constructor"""
         return create_agent(
-            model=model if type(model) == BaseChatModel else get_model(model, tools),
+            model=model if model.isinstance(BaseChatModel) else get_model(model, tools),
             tools=tools or [],
             name=name or self.node_id,
             system_prompt=system_prompt,
