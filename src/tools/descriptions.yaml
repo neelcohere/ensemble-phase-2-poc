@@ -1,0 +1,5 @@
+# Tool descriptions
+
+get_account_data: "Retrieve account data for an account"
+post_contractual_adjustment: "Post an adjustment"
+post_account_note: "Post a note on the account summarizing all actions taken"
