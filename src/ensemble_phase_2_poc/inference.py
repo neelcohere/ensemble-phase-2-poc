@@ -10,9 +10,5 @@ load_dotenv(dotenv_path=".env", override=True)
 
 
 def get_model(model: str, tools: List[Any], **kwargs) -> ChatCohere:
-    llm = ChatCohere(
-        cohere_api_key=os.environ["COHERE_API_KEY"],
-        model=model,
-        **kwargs
-    )
+    llm = ChatCohere(cohere_api_key=os.environ["COHERE_API_KEY"], model=model, **kwargs)
     return llm

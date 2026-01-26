@@ -3,12 +3,27 @@ name = "ensemble-phase-2-poc"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
+authors = [
+    { name = "edmond wen", email = "edmond@cohere.com" }
+]
 requires-python = ">=3.12"
 dependencies = [
     "cohere>=5.20.2",
     "langchain>=1.2.7",
     "langchain-cohere>=0.5.0",
     "langgraph>=1.0.7",
-    "mlflow==3.0.1",
+    "mlflow>=3.8.1",
     "python-dotenv>=1.2.1",
+]
+
+[project.scripts]
+ensemble-phase-2-poc = "ensemble_phase_2_poc:main"
+
+[build-system]
+requires = ["uv_build>=0.9.2,<0.10.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14.14",
 ]

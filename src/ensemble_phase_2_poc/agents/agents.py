@@ -1,7 +1,7 @@
-from src.state import WorkflowState, get_node_output
-from src.agents.base import BaseAgent
-from src.agents.utils import get_prompt
-from src.tools.tools import (
+from ensemble_phase_2_poc.state import WorkflowState, get_node_output
+from ensemble_phase_2_poc.agents.base import BaseAgent
+from ensemble_phase_2_poc.agents.utils import get_prompt
+from ensemble_phase_2_poc.tools.tools import (
     GetAccountData,
     PostContractualAdjustment,
     PostAccountNote,
@@ -10,12 +10,12 @@ from src.tools.tools import (
 
 class AccountResearchAgent(BaseAgent):
     """First agent retrieves summarize account data"""
-    
+
     node_id = "account_research_agent"
-    
+
     # No dependencies - this is the first node
     depends_on = []
-    
+
     def render_prompt(self, state: WorkflowState) -> str:
         """Build research prompt using global param"""
         template = get_prompt(self.node_id)
@@ -25,7 +25,7 @@ class AccountResearchAgent(BaseAgent):
             facility_prefix=state["facility_prefix"],
             lob=state["lob"],
         )
-    
+
     def execute(self, prompt: str, state: WorkflowState) -> str:
         """Run the research agent"""
         # Setup tools with injected vals
@@ -47,23 +47,25 @@ class AccountResearchAgent(BaseAgent):
         result = agent.invoke(
             input={"messages": [{"role": "user", "content": prompt}]},
         )
-        
+
         # Extract final message content from agent response
         return result["messages"][-1].content
 
 
 class ResolutionAgent(BaseAgent):
     """Second agent takes resolution actions based on research output."""
-    
+
     node_id = "resolution_agent"
-    
+
     # Depemdency: get account data --> research agent
     depends_on = [AccountResearchAgent.node_id]
-    
+
     def render_prompt(self, state: WorkflowState) -> str:
         """Build resolution prompt using global params and acount data output"""
-        research_agent_output = get_node_output(state, AccountResearchAgent.node_id) # get output from state
-        
+        research_agent_output = get_node_output(
+            state, AccountResearchAgent.node_id
+        )  # get output from state
+
         template = get_prompt(self.node_id)
         return template.format(
             account_number=state["account_number"],
@@ -72,7 +74,7 @@ class ResolutionAgent(BaseAgent):
             lob=state["lob"],
             research_agent_output=research_agent_output,
         )
-    
+
     def execute(self, prompt: str, state: WorkflowState) -> str:
         """Run the resolution agent."""
         # Setup tools with injected values
@@ -94,24 +96,24 @@ class ResolutionAgent(BaseAgent):
         result = agent.invoke(
             input={"messages": [{"role": "user", "content": prompt}]},
         )
-        
+
         # Extract final message content from agent response
         return result["messages"][-1].content
 
 
 class AccountNoteAgent(BaseAgent):
     """Third agent posts a note summarizing all actions taken on the account."""
-    
+
     node_id = "account_note_agent"
-    
+
     # Depends on the resolution agent's output
     depends_on = [ResolutionAgent.node_id]
-    
+
     def render_prompt(self, state: WorkflowState) -> str:
         """Build prompt using global parameters and resolution output."""
         # Get the resolution agent's output directly from state
         resolution_agent_output = get_node_output(state, ResolutionAgent.node_id)
-        
+
         template = get_prompt(self.node_id)
         return template.format(
             account_number=state["account_number"],
@@ -120,7 +122,7 @@ class AccountNoteAgent(BaseAgent):
             lob=state["lob"],
             resolution_agent_output=resolution_agent_output,
         )
-    
+
     def execute(self, prompt: str, state: WorkflowState) -> str:
         """Run the post account note agent."""
         # Setup tools with injected values
@@ -134,7 +136,7 @@ class AccountNoteAgent(BaseAgent):
         # Setup agent
         agent = self.build_agent(
             name=self.node_id,
-            model="command-a-03-2025", # route the model string so it can be setup as a base model
+            model="command-a-03-2025",  # route the model string so it can be setup as a base model
             tools=[post_account_note],
         )
 
@@ -142,6 +144,6 @@ class AccountNoteAgent(BaseAgent):
         result = agent.invoke(
             input={"messages": [{"role": "user", "content": prompt}]},
         )
-        
+
         # Extract final message content from agent response
         return result["messages"][-1].content

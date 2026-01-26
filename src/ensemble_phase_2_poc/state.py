@@ -5,6 +5,7 @@ import operator
 
 class NodeExecution(TypedDict):
     """Captures a single node's execution result"""
+
     node_id: str
     input: str
     output: str
@@ -13,14 +14,14 @@ class NodeExecution(TypedDict):
 
 class WorkflowState(TypedDict):
     """State schema for LangGraph workflows"""
-    
+
     # Node outputs keyed by semantic node_id (e.g., "research", "analyze")
     # Each node reads input from prior node's output via get_node_output()
     node_outputs: dict[str, NodeExecution]
-    
+
     # Ordered list of node_ids that have executed - uses reducer to accumulate
     execution_path: Annotated[list[str], operator.add]
-    
+
     # Global parameters (shared across all nodes)
     account_number: str
     client_name: str

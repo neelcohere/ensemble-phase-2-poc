@@ -9,9 +9,15 @@ class GetAccountDataInput(BaseModel):
 
 class PostContractualAdjustmentInput(BaseModel):
     """Input schema for PostContractualAdjustment - only transaction_id from LLM"""
-    transaction_id: str = Field(description="The transaction ID to post the adjustment against")
+
+    transaction_id: str = Field(
+        description="The transaction ID to post the adjustment against"
+    )
 
 
 class PostAccountNoteInput(BaseModel):
     """Input schema for PostAccountNote - description from LLM"""
-    description: str = Field(description="A detailed description of the actions taken on the account")
+
+    description: str = Field(
+        description="A detailed description of the actions taken on the account"
+    )

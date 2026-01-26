@@ -13,22 +13,22 @@ from langgraph.graph.state import CompiledStateGraph
 from mlflow.pyfunc import ResponsesAgent
 from mlflow.types.responses import ResponsesAgentRequest, ResponsesAgentResponse
 
-from src.state import WorkflowState, get_node_output
+from ensemble_phase_2_poc.state import WorkflowState, get_node_output
 
 
 class LangGraphResponsesAgent(ResponsesAgent, ABC):
     """
     Base class for LangGraph workflows that integrate with Databricks/mlflow.
-    
+
     Subclasses only need to implement:
     - build_workflow(): Define your StateGraph with nodes and edges
-    
+
     The base class handles:
     - Compiling the workflow
     - Serializing ResponsesAgentRequest -> WorkflowState
     - Invoking the agent
     - Serializing final state -> ResponsesAgentResponse
-    
+
     Example:
     ```
         class MyWorkflow(LangGraphResponsesAgent):
@@ -39,36 +39,36 @@ class LangGraphResponsesAgent(ResponsesAgent, ABC):
                 return graph
     ```
     """
-    
+
     _compiled_agent: CompiledStateGraph | None = None
-    
+
     @property
     def agent(self) -> CompiledStateGraph:
         """Lazily compile the workflow on first access."""
         if self._compiled_agent is None:
             self._compiled_agent = self.build_workflow().compile()
         return self._compiled_agent
-    
+
     @abstractmethod
     def build_workflow(self) -> StateGraph:
         """Define the workflow graph. Subclasses must implement this."""
         ...
-    
+
     def predict(self, request: ResponsesAgentRequest) -> ResponsesAgentResponse:
         """Main entry point for Databricks/mlflow integration."""
         # Convert request to initial state
         initial_state = self._request_to_state(request)
-        
+
         # Run the workflow
         final_state = self.agent.invoke(initial_state)
-        
+
         # Convert final state to response
-        return self._state_to_response(final_state, request)
-    
+        return self._state_to_response(final_state)
+
     def _request_to_state(self, request: ResponsesAgentRequest) -> WorkflowState:
         """Convert ResponsesAgentRequest to WorkflowState"""
         custom_inputs = request.custom_inputs or {}
-        
+
         return WorkflowState(
             node_outputs={},
             execution_path=[],
@@ -77,15 +77,15 @@ class LangGraphResponsesAgent(ResponsesAgent, ABC):
             facility_prefix=custom_inputs.get("facility_prefix", ""),
             lob=custom_inputs.get("lob", ""),
         )
-    
+
     def _state_to_response(
-        self, 
-        final_state: WorkflowState, 
+        self,
+        final_state: WorkflowState,
     ) -> ResponsesAgentResponse:
         """Convert final WorkflowState to ResponsesAgentResponse"""
         # Get the last executed node's output
         execution_path = final_state.get("execution_path", [])
-        
+
         return ResponsesAgentResponse(
             output=[],
             custom_outputs={

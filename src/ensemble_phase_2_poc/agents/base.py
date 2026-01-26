@@ -14,38 +14,38 @@ from langchain_core.tools import BaseTool
 from langchain.agents import create_agent
 from langgraph.graph.state import CompiledStateGraph
 
-from src.state import WorkflowState, NodeExecution, get_node_output
-from src.inference import get_model
+from ensemble_phase_2_poc.state import WorkflowState, NodeExecution, get_node_output
+from ensemble_phase_2_poc.inference import get_model
 
 
 class BaseAgent(ABC):
     """Abstract base class for workflow nodes"""
-    
+
     @property
     @abstractmethod
     def node_id(self) -> str:
         """Unique identifier for this node. Used as key in node_outputs."""
         ...
-    
+
     @property
     def depends_on(self) -> list[str]:
         """List of node_ids this node depends on"""
         return []
-    
+
     @abstractmethod
     def render_prompt(self, state: WorkflowState) -> str:
         """Build the prompt for this node"""
         ...
-    
+
     @abstractmethod
     def execute(self, prompt: str, state: WorkflowState) -> str:
         """Execute the agent/LLM logic"""
         ...
-    
+
     def build_metadata(self, state: WorkflowState) -> dict[str, Any]:
         """Override to add custom metadata to the node execution record"""
         return {}
-    
+
     def validate_dependencies(self, state: WorkflowState) -> None:
         """Called before execution. Override to add custom validation"""
         for dep in self.depends_on:
@@ -54,23 +54,23 @@ class BaseAgent(ABC):
                     f"Node '{self.node_id}' depends on '{dep}' but it has not executed yet. "
                     f"Execution path so far: {state['execution_path']}"
                 )
-    
+
     def __call__(self, state: WorkflowState) -> dict:
         """LangGraph-compatible callable"""
         # Validate dependencies are met
         self.validate_dependencies(state)
-        
+
         # Build the prompt (node uses get_node_output() to access prior outputs)
         prompt = self.render_prompt(state)
-        
+
         # Execute the agent logic
         output = self.execute(prompt, state)
-        
+
         # Build metadata
         metadata = self.build_metadata(state)
         if self.depends_on:
             metadata["depends_on"] = self.depends_on
-        
+
         # Return state updates
         return {
             "node_outputs": {
@@ -84,14 +84,14 @@ class BaseAgent(ABC):
             },
             "execution_path": [self.node_id],
         }
-    
+
     def as_node(self) -> tuple[str, Callable[[WorkflowState], dict]]:
         """Utuility for extracting (node_id, callable) tuple for use with graph.add_node()
-        
+
         we need this to setup the state graph using Langgraph
         """
         return (self.node_id, self)
-    
+
     def build_agent(
         self,
         model: str | BaseChatModel,
@@ -102,7 +102,7 @@ class BaseAgent(ABC):
     ) -> CompiledStateGraph:
         """Agent constructor"""
         return create_agent(
-            model=model if type(model) == BaseChatModel else get_model(model),
+            model=model if type(model) == BaseChatModel else get_model(model, tools),
             tools=tools or [],
             name=name or self.node_id,
             system_prompt=system_prompt,

@@ -24,5 +24,13 @@ For example, this project defaults to the Cohere chat API, which requires a `COH
 2. Navigate to the project root and run the python `main.py` module
 ```
 cd path\to\root
-python -m src.main
+uv run ensemble-phase-2-poc
 ```
+
+# Running unit tests
+```
+uv run test/test_import.py
+```
+
+# Contributing
+1.

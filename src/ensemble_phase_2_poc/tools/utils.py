@@ -12,5 +12,5 @@ def get_tool_description(name: str) -> str:
 
     if descriptions.get(name, None) is None:
         raise ValueError(f"Prompt '{name}' not found")
-    
+
     return descriptions.get(name)
