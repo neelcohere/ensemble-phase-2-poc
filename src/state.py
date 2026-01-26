@@ -4,7 +4,7 @@ import operator
 
 
 class NodeExecution(TypedDict):
-    """Captures a single node's execution result."""
+    """Captures a single node's execution result"""
     node_id: str
     input: str
     output: str
@@ -12,14 +12,7 @@ class NodeExecution(TypedDict):
 
 
 class WorkflowState(TypedDict):
-    """
-    Flexible state schema for LangGraph workflows.
-    
-    Supports:
-    - Sequential workflows (each node reads prior outputs from registry)
-    - Branching workflows (execution_path tracks which branch was taken)
-    - Hierarchical workflows (via workflow_context if needed)
-    """
+    """State schema for LangGraph workflows"""
     
     # Node outputs keyed by semantic node_id (e.g., "research", "analyze")
     # Each node reads input from prior node's output via get_node_output()
@@ -35,9 +28,6 @@ class WorkflowState(TypedDict):
     lob: str
 
 
-# -----------------------------------------------------------------------------
-# Helpers for nodes to interact with state
-# -----------------------------------------------------------------------------
 def get_node_output(state: WorkflowState, node_id: str) -> Optional[str]:
     """Retrieve a specific node's output from state."""
     if node_id in state["node_outputs"]:
@@ -46,7 +36,7 @@ def get_node_output(state: WorkflowState, node_id: str) -> Optional[str]:
 
 
 def get_prior_outputs(state: WorkflowState, node_ids: list[str]) -> dict[str, str]:
-    """Retrieve multiple node outputs - useful for nodes that aggregate prior work."""
+    """Retrieve multiple node outputs"""
     return {
         node_id: state["node_outputs"][node_id]["output"]
         for node_id in node_ids
