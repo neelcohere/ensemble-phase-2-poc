@@ -9,7 +9,7 @@ from langgraph.graph import StateGraph, START, END
 
 from ensemble_phase_2_poc.state import WorkflowState, get_node_output
 from ensemble_phase_2_poc.workflow.base import LangGraphResponsesAgent
-from ensemble_phase_2_poc.agents.agents import (
+from ensemble_phase_2_poc.agents import (
     AccountResearchAgent,
     ResolutionAgent,
     AccountNoteAgent,

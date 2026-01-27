@@ -7,6 +7,7 @@
 # - Execution lifecycle hooks
 
 from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import Any, Callable, Sequence
 
 from langchain_core.language_models import BaseChatModel
@@ -21,6 +22,8 @@ from ensemble_phase_2_poc.inference import get_model
 class BaseAgent(ABC):
     """Abstract base class for workflow nodes"""
 
+    PROMPT_DIR = Path(__file__).parent / "prompts"
+
     @property
     @abstractmethod
     def node_id(self) -> str:
@@ -31,6 +34,14 @@ class BaseAgent(ABC):
     def depends_on(self) -> list[str]:
         """List of node_ids this node depends on"""
         return []
+
+    @classmethod
+    def get_prompt(cls, name: str) -> str:
+        """Get prompt template from the prompts directory"""
+        prompt_path = cls.PROMPT_DIR / f"{name}.md"
+        with open(prompt_path, "r") as file:
+            template = file.read()
+        return template
 
     @abstractmethod
     def render_prompt(self, state: WorkflowState) -> str:
