@@ -10,7 +10,6 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Callable, Sequence
 
-from langchain_core.language_models import BaseChatModel
 from langchain_core.tools import BaseTool
 from langchain.agents import create_agent
 from langgraph.graph.state import CompiledStateGraph

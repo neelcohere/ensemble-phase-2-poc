@@ -29,6 +29,7 @@ classDiagram
         <<abstract>>
         +node_id* str
         +depends_on list~str~
+        +get_prompt(name)$ str
         +render_prompt(state)* str
         +execute(prompt, state)* str
         +build_metadata(state) dict
@@ -83,12 +84,20 @@ classDiagram
     class PostContractualAdjustment {
         +name = "post_contractual_adjustment"
         +args_schema = PostContractualAdjustmentInput
+        +account_number: str
+        +client_name: str
+        +facility_prefix: str
+        +lob: str
         +_run(transaction_id) List~Dict~
     }
 
     class PostAccountNote {
         +name = "post_account_note"
         +args_schema = PostAccountNoteInput
+        +account_number: str
+        +client_name: str
+        +facility_prefix: str
+        +lob: str
         +_run(description) List~Dict~
     }
 
@@ -143,10 +152,21 @@ touch .env
 ```
 For example, this project defaults to the Cohere chat API, which requires a `COHERE_API_KEY` to be set as an env var.
 
-2. Navigate to the project root and run the python `main.py` module
+2. Navigate to the project root and run the CLI. You can use it in the following ways:
 ```
 cd path\to\root
-uv run ensemble-phase-2-poc
+
+# Use defaults (branching workflow)
+ensemble-phase-2-poc
+
+# Run sequential workflow
+ensemble-phase-2-poc -w sequential
+
+# Full customization
+ensemble-phase-2-poc --workflow sequential --experiment my-experiment --tracking-uri http://mlflow.example.com:5000 --run-name my-test-run
+
+# View help
+ensemble-phase-2-poc --help
 ```
 
 ## Running unit tests
