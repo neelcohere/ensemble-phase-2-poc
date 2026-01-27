@@ -9,7 +9,7 @@ from ensemble_phase_2_poc.tools.tools import (
 
 
 class AccountResearchAgent(BaseAgent):
-    """First agent retrieves summarize account data"""
+    """Retrieve and summarize account data"""
 
     node_id = "account_research_agent"
 
@@ -53,7 +53,7 @@ class AccountResearchAgent(BaseAgent):
 
 
 class ResolutionAgent(BaseAgent):
-    """Second agent takes resolution actions based on research output."""
+    """Take resolution actions based on research output."""
 
     node_id = "resolution_agent"
 
@@ -102,7 +102,7 @@ class ResolutionAgent(BaseAgent):
 
 
 class AccountNoteAgent(BaseAgent):
-    """Third agent posts a note summarizing all actions taken on the account."""
+    """Post a note summarizing all actions taken on the account."""
 
     node_id = "account_note_agent"
 
@@ -143,6 +143,46 @@ class AccountNoteAgent(BaseAgent):
         # Invoke agent
         result = agent.invoke(
             input={"messages": [{"role": "user", "content": prompt}]},
+        )
+
+        # Extract final message content from agent response
+        return result["messages"][-1].content
+
+
+class TriageAgent(BaseAgent):
+    """Triage account"""
+
+    node_id = "triage_agent"
+
+    depends_on = [AccountResearchAgent.node_id]
+
+    def render_prompt(self, state: WorkflowState) -> str:
+        """Build triage prompt using global params and acount data output"""
+        research_agent_output = get_node_output(
+            state, AccountResearchAgent.node_id
+        )  # get output from state
+
+        template = get_prompt(self.node_id)
+        return template.format(
+            account_number=state["account_number"],
+            client_name=state["client_name"],
+            facility_prefix=state["facility_prefix"],
+            lob=state["lob"],
+            research_agent_output=research_agent_output,
+        )
+
+    def execute(self, prompt: str, state: WorkflowState) -> str:
+        """Run triage agent"""
+        
+        # Setup agent
+        agent = self.build_agent(
+            name=self.node_id,
+            model="command-a-03-2025",
+        )
+
+        # Invoke agent
+        result = agent.invoke(
+            input={"messages": [{"role": "user", "content": prompt}]}
         )
 
         # Extract final message content from agent response

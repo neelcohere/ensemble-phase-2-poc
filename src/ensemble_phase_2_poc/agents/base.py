@@ -94,15 +94,16 @@ class BaseAgent(ABC):
 
     def build_agent(
         self,
-        model: str | BaseChatModel,
+        model: str,
         tools: Sequence[BaseTool | Callable[..., Any] | dict[str, Any]] | None = None,
         system_prompt: str | None = None,
         name: str | None = None,
         **kwargs: Any,
     ) -> CompiledStateGraph:
         """Agent constructor"""
+
         return create_agent(
-            model=model if model.isinstance(BaseChatModel) else get_model(model, tools),
+            model=get_model(model, tools),
             tools=tools or [],
             name=name or self.node_id,
             system_prompt=system_prompt,

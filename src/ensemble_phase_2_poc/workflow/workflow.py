@@ -7,16 +7,17 @@
 
 from langgraph.graph import StateGraph, START, END
 
-from ensemble_phase_2_poc.state import WorkflowState
+from ensemble_phase_2_poc.state import WorkflowState, get_node_output
 from ensemble_phase_2_poc.workflow.base import LangGraphResponsesAgent
 from ensemble_phase_2_poc.agents.agents import (
     AccountResearchAgent,
     ResolutionAgent,
     AccountNoteAgent,
+    TriageAgent,
 )
 
 
-class AccountResolutionWorkflow(LangGraphResponsesAgent):
+class SequentialAccountResolutionWorkflow(LangGraphResponsesAgent):
     """
     Sequential workflow for account resolution.
 
@@ -44,6 +45,59 @@ class AccountResolutionWorkflow(LangGraphResponsesAgent):
         # Define the sequence
         graph.add_edge(START, research.node_id)
         graph.add_edge(research.node_id, resolution.node_id)
+        graph.add_edge(resolution.node_id, post_note.node_id)
+        graph.add_edge(post_note.node_id, END)
+
+        return graph
+
+
+class BranchingAccountResolutionWorkflow(LangGraphResponsesAgent):
+    """
+    Branching workflow for account resolution.
+
+    Flow: AccountResearchAgent -> TriageAgent:
+        - (if "agent") -> ResolutionAgent -> AccountNoteAgent
+        - (if "human") -> END
+
+    To deploy to Databricks, just instantiate this class - the base class
+    handles all the mlflow/ResponsesAgent integration.
+    """
+
+    def build_workflow(self) -> StateGraph:
+        """Define the workflow graph"""
+        # Instantiate nodes
+        research = AccountResearchAgent()
+        resolution = ResolutionAgent()
+        post_note = AccountNoteAgent()
+        triage = TriageAgent()
+
+        # Define any routing functions
+        def _route_to_agent(state: WorkflowState) -> bool:
+            triage_output = get_node_output(state, triage.node_id).lower()
+
+            if triage_output not in ["agent", "human"]:
+                raise ValueError(f"Invalid triage agent output: {triage_output}")
+
+            return True if triage_output == "agent" else False
+
+        # Create the graph
+        graph = StateGraph(WorkflowState)
+
+        # Add nodes
+        graph.add_node(*research.as_node())
+        graph.add_node(*resolution.as_node())
+        graph.add_node(*post_note.as_node())
+        graph.add_node(*triage.as_node())
+
+        # Define the sequence
+        graph.add_edge(START, research.node_id)
+        graph.add_edge(research.node_id, triage.node_id)
+
+        # Define conditional edge after triage agent
+        graph.add_conditional_edges(
+            triage.node_id, _route_to_agent, {True: resolution.node_id, False: END}
+        )
+
         graph.add_edge(resolution.node_id, post_note.node_id)
         graph.add_edge(post_note.node_id, END)
 

@@ -1,6 +1,9 @@
 import mlflow
 from mlflow.types.responses import ResponsesAgentRequest
-from ensemble_phase_2_poc.workflow.workflow import AccountResolutionWorkflow
+from ensemble_phase_2_poc.workflow.workflow import (
+    BranchingAccountResolutionWorkflow,
+    SequentialAccountResolutionWorkflow,
+)
 from mlflow.models import set_model
 
 
@@ -11,7 +14,8 @@ def main() -> None:
     mlflow.langchain.autolog()
 
     # Instantiate the workflow
-    workflow = AccountResolutionWorkflow()
+    # workflow = SequentialAccountResolutionWorkflow() ## uncomment for sequential workflow
+    workflow = BranchingAccountResolutionWorkflow() ## uncomment for branching workflow
 
     # Set the mlflow model
     set_model(workflow)
@@ -28,7 +32,7 @@ def main() -> None:
     )
 
     # Run agent with mlflow logging
-    with mlflow.start_run(run_name="test-workflow-run"):
+    with mlflow.start_run(run_name="test-workflow-run-branching"):
         response = workflow.predict(request)
 
     # Inspect results
