@@ -131,7 +131,8 @@ uv sync
 ```
 uvx mlflow server
 ```
-This will setup the mlflow server on https://localhost:5000
+This will setup the mlflow server on https://localhost:5000. We recommend running the mlflow server
+in one terminal instance (i.e. use tmux) while triggering workflows in another.
 
 ## Running a test workflow
 
