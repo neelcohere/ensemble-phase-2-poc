@@ -71,7 +71,7 @@ class BranchingAccountResolutionWorkflow(LangGraphResponsesAgent):
         post_note = AccountNoteAgent()
         triage = TriageAgent()
 
-        # Define any routing functions
+        # Define routing functions
         def _route_to_agent(state: WorkflowState) -> bool:
             triage_output = get_node_output(state, triage.node_id).lower()
 
@@ -94,6 +94,8 @@ class BranchingAccountResolutionWorkflow(LangGraphResponsesAgent):
         graph.add_edge(research.node_id, triage.node_id)
 
         # Define conditional edge after triage agent
+        # if "agent", pass to resolution agent
+        # if "human", end workflow
         graph.add_conditional_edges(
             triage.node_id, _route_to_agent, {True: resolution.node_id, False: END}
         )
