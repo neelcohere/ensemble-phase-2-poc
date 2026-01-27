@@ -143,10 +143,21 @@ touch .env
 ```
 For example, this project defaults to the Cohere chat API, which requires a `COHERE_API_KEY` to be set as an env var.
 
-2. Navigate to the project root and run the python `main.py` module
+2. Navigate to the project root and run the python `main.py` module. You can use the cli in the following ways:
 ```
 cd path\to\root
-uv run ensemble-phase-2-poc
+
+# Use defaults (branching workflow)
+ensemble-phase-2-poc
+
+# Run sequential workflow
+ensemble-phase-2-poc -w sequential
+
+# Full customization
+ensemble-phase-2-poc --workflow sequential --experiment my-experiment --tracking-uri http://mlflow.example.com:5000 --run-name my-test-run
+
+# View help
+ensemble-phase-2-poc --help
 ```
 
 ## Running unit tests
