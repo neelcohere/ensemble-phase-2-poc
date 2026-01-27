@@ -1,7 +1,7 @@
 from ensemble_phase_2_poc.state import WorkflowState, get_node_output
 from ensemble_phase_2_poc.agents.base_agent import BaseAgent
 from ensemble_phase_2_poc.agents.resolution_agent import ResolutionAgent
-from ensemble_phase_2_poc.tools.tools import PostAccountNote
+from ensemble_phase_2_poc.tools import PostAccountNote
 
 
 class AccountNoteAgent(BaseAgent):

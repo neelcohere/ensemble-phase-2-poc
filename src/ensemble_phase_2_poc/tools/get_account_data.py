@@ -1,18 +1,17 @@
 from typing import List, Dict, Any
-from langchain.tools import BaseTool
-from ensemble_phase_2_poc.tools.schema import (
-    GetAccountDataInput,
-    PostContractualAdjustmentInput,
-    PostAccountNoteInput,
-)
-from ensemble_phase_2_poc.tools.utils import get_tool_description
+from pydantic import BaseModel
+from ensemble_phase_2_poc.tools.base_tool import Tool
 
 
-class GetAccountData(BaseTool):
+class GetAccountDataInput(BaseModel):
+    """Input schema for GetAccountData - no args from LLM, uses bound values"""
+
+
+class GetAccountData(Tool):
     """Get account data - injected args are stored as instance attributes"""
 
     name: str = "get_account_data"
-    description: str = get_tool_description(name)
+    description: str = Tool.get_tool_description(name)
     args_schema: type = GetAccountDataInput
 
     # Injected values (set at instantiation)
@@ -112,53 +111,5 @@ class GetAccountData(BaseTool):
                         "text": "Need to post a contractual adjustment at transaction ID 1300 for $200 to clear account.",
                     },
                 ],
-            }
-        ]
-
-
-class PostContractualAdjustment(BaseTool):
-    """Post a contractual adjustment - injected args are stored as instance attributes"""
-
-    name: str = "post_contractual_adjustment"
-    description: str = get_tool_description(name)
-    args_schema: type = PostContractualAdjustmentInput
-
-    # Injected values (set at instantiation)
-    account_number: str = ""
-    client_name: str = ""
-    facility_prefix: str = ""
-    lob: str = ""
-
-    def _run(self, transaction_id: str) -> List[Dict[str, Any]]:
-        """Post adjustment - uses self.account_number, etc. + transaction_id from LLM"""
-        return [
-            {
-                "status": "success",
-                "account_number": self.account_number,
-                "transaction_id": transaction_id,
-            }
-        ]
-
-
-class PostAccountNote(BaseTool):
-    """Post a note on the account - injected args are stored as instance attributes"""
-
-    name: str = "post_account_note"
-    description: str = get_tool_description(name)
-    args_schema: type = PostAccountNoteInput
-
-    # Injected values (set at instantiation)
-    account_number: str = ""
-    client_name: str = ""
-    facility_prefix: str = ""
-    lob: str = ""
-
-    def _run(self, description: str) -> List[Dict[str, Any]]:
-        """Post note - uses self.account_number, etc. + description from LLM"""
-        return [
-            {
-                "status": "success",
-                "account_number": self.account_number,
-                "note": description,
             }
         ]
