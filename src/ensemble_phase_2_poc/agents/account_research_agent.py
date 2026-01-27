@@ -1,6 +1,6 @@
 from ensemble_phase_2_poc.state import WorkflowState
 from ensemble_phase_2_poc.agents.base_agent import BaseAgent
-from ensemble_phase_2_poc.tools.tools import GetAccountData
+from ensemble_phase_2_poc.tools import GetAccountData
 
 
 class AccountResearchAgent(BaseAgent):
