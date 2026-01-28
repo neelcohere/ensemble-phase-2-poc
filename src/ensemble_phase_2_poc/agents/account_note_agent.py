@@ -12,6 +12,7 @@ class AccountNoteAgent(BaseAgent):
 
     def render_prompt(self, state: WorkflowState) -> str:
         """Build prompt using global parameters and resolution output."""
+        self.logger.info(f"Rendering account note prompt for account: {state['account_number']}")
         resolution_agent_output = get_node_output(state, ResolutionAgent.node_id)
 
         template = self.get_prompt(self.node_id)
@@ -25,6 +26,7 @@ class AccountNoteAgent(BaseAgent):
 
     def execute(self, prompt: str, state: WorkflowState) -> str:
         """Run the post account note agent."""
+        self.logger.info(f"Posting account note for account: {state['account_number']}")
         post_account_note = PostAccountNote(
             account_number=state["account_number"],
             client_name=state["client_name"],
@@ -42,4 +44,5 @@ class AccountNoteAgent(BaseAgent):
             input={"messages": [{"role": "user", "content": prompt}]},
         )
 
+        self.logger.info("Account note posted successfully")
         return result["messages"][-1].content

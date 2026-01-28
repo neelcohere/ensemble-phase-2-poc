@@ -7,10 +7,24 @@ classDiagram
         +predict(request)
     }
 
+    class Logger {
+        <<logging>>
+        +info(msg)
+        +debug(msg)
+        +warning(msg)
+        +error(msg)
+    }
+
+    class get_logger {
+        <<factory>>
+        +get_logger(name) Logger
+    }
+
     class LangGraphResponsesAgent {
         <<abstract>>
         -_compiled_agent: CompiledStateGraph
         +agent: CompiledStateGraph
+        +logger: Logger
         +build_workflow()* StateGraph
         +predict(request) ResponsesAgentResponse
         -_request_to_state(request) WorkflowState
@@ -29,6 +43,7 @@ classDiagram
         <<abstract>>
         +node_id* str
         +depends_on list~str~
+        +logger: Logger
         +get_prompt(name)$ str
         +render_prompt(state)* str
         +execute(prompt, state)* str
@@ -65,6 +80,12 @@ classDiagram
         +depends_on = ["account_research_agent"]
         +render_prompt(state) str
         +execute(prompt, state) str
+    }
+
+    class Tool {
+        <<base>>
+        +logger: Logger
+        +get_tool_description(name)$ str
     }
 
     class BaseTool {
@@ -110,9 +131,10 @@ classDiagram
     BaseAgent <|-- AccountNoteAgent
     BaseAgent <|-- TriageAgent
 
-    BaseTool <|-- GetAccountData
-    BaseTool <|-- PostContractualAdjustment
-    BaseTool <|-- PostAccountNote
+    BaseTool <|-- Tool
+    Tool <|-- GetAccountData
+    Tool <|-- PostContractualAdjustment
+    Tool <|-- PostAccountNote
 
     AccountResearchAgent ..> GetAccountData : uses
     ResolutionAgent ..> PostContractualAdjustment : uses
@@ -126,6 +148,11 @@ classDiagram
     BranchingAccountResolutionWorkflow ..> ResolutionAgent : contains
     BranchingAccountResolutionWorkflow ..> AccountNoteAgent : contains
     BranchingAccountResolutionWorkflow ..> TriageAgent : contains
+
+    get_logger ..> Logger : creates
+    LangGraphResponsesAgent ..> get_logger : uses
+    BaseAgent ..> get_logger : uses
+    Tool ..> get_logger : uses
 ```
 
 ## Setting up MLFlow server

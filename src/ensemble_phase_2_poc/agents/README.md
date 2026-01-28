@@ -11,6 +11,35 @@ All agents inherit from `BaseAgent`, which provides:
 - **Execution interface** – `execute()` method for LLM/agent logic
 - **State management** – Integration with `WorkflowState` for reading/writing outputs
 - **Metadata tracking** – Execution metadata for observability
+- **Logging** – Built-in `logger` property for structured logging
+
+## Logging
+
+All agents have access to a `self.logger` property provided by `BaseAgent`. The logger is automatically named after the concrete class (e.g., `ensemble_phase_2_poc.agents.account_research_agent.AccountResearchAgent`).
+
+### Usage
+
+```python
+class MyAgent(BaseAgent):
+    def render_prompt(self, state: WorkflowState) -> str:
+        self.logger.info(f"Rendering prompt for account: {state['account_number']}")
+        # ...
+
+    def execute(self, prompt: str, state: WorkflowState) -> str:
+        self.logger.info("Starting execution")
+        self.logger.debug(f"Prompt length: {len(prompt)}")
+        # ...
+        self.logger.info("Execution completed")
+```
+
+### Log Levels
+
+- `self.logger.debug()` – Detailed diagnostic information (not shown by default)
+- `self.logger.info()` – General operational messages
+- `self.logger.warning()` – Potential issues that don't prevent execution
+- `self.logger.error()` – Errors that may affect execution
+
+The default log level is `INFO`. To see debug logs, modify the level in `logger.py`.
 
 ## Agents
 

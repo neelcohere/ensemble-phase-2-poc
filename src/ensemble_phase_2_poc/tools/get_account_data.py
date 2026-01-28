@@ -22,6 +22,8 @@ class GetAccountData(Tool):
 
     def _run(self) -> List[Dict[str, Any]]:
         """Sample output - uses self.account_number, etc."""
+        self.logger.info(f"Fetching account data for account: {self.account_number}")
+        self.logger.info(f"Client: {self.client_name}, Facility: {self.facility_prefix}, LOB: {self.lob}")
         return [
             {
                 "account_number": "ACC-12345",

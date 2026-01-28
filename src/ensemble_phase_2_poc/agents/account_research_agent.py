@@ -11,6 +11,7 @@ class AccountResearchAgent(BaseAgent):
 
     def render_prompt(self, state: WorkflowState) -> str:
         """Build research prompt using global param"""
+        self.logger.info(f"Rendering prompt for account: {state['account_number']}")
         template = self.get_prompt(self.node_id)
         return template.format(
             account_number=state["account_number"],
@@ -21,6 +22,7 @@ class AccountResearchAgent(BaseAgent):
 
     def execute(self, prompt: str, state: WorkflowState) -> str:
         """Run the research agent"""
+        self.logger.info(f"Executing research agent for client: {state['client_name']}")
         get_account_data = GetAccountData(
             account_number=state["account_number"],
             client_name=state["client_name"],
@@ -38,4 +40,5 @@ class AccountResearchAgent(BaseAgent):
             input={"messages": [{"role": "user", "content": prompt}]},
         )
 
+        self.logger.debug(f"Research agent completed with {len(result['messages'])} messages")
         return result["messages"][-1].content
