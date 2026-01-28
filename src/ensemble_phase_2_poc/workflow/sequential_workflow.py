@@ -21,10 +21,14 @@ class SequentialAccountResolutionWorkflow(LangGraphResponsesAgent):
 
     def build_workflow(self) -> StateGraph:
         """Define the workflow graph"""
+        self.logger.info("Building sequential account resolution workflow")
+
         # Instantiate nodes
         research = AccountResearchAgent()
         resolution = ResolutionAgent()
         post_note = AccountNoteAgent()
+
+        self.logger.debug(f"Nodes initialized: {research.node_id}, {resolution.node_id}, {post_note.node_id}")
 
         # Create the graph
         graph = StateGraph(WorkflowState)
@@ -40,4 +44,5 @@ class SequentialAccountResolutionWorkflow(LangGraphResponsesAgent):
         graph.add_edge(resolution.node_id, post_note.node_id)
         graph.add_edge(post_note.node_id, END)
 
+        self.logger.info("Sequential workflow graph built successfully")
         return graph

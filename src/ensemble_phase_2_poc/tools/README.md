@@ -21,6 +21,34 @@ tools/
 - **Centralized tool descriptions**: All tool descriptions, which will be seen as context by agents at inference time, are in `descriptions.yaml`
 - **Self-Contained**: Tools are independent and can be imported individually
 - **Extensible**: New tools can be added by creating a new file following the established pattern
+- **Observable**: Built-in logging via the `logger` property
+
+## Logging
+
+All tools that extend `Tool` (from `base_tool.py`) have access to a `self.logger` property. The logger is automatically named after the concrete class (e.g., `ensemble_phase_2_poc.tools.get_account_data.GetAccountData`).
+
+### Usage
+
+```python
+class MyTool(Tool):
+    def _run(self, param: str) -> List[Dict[str, Any]]:
+        self.logger.info(f"Executing tool for account: {self.account_number}")
+        self.logger.debug(f"Parameter value: {param}")
+        
+        result = do_something()
+        
+        self.logger.info("Tool execution completed")
+        return result
+```
+
+### Log Levels
+
+- `self.logger.debug()` – Detailed diagnostic information (not shown by default)
+- `self.logger.info()` – General operational messages
+- `self.logger.warning()` – Potential issues that don't prevent execution
+- `self.logger.error()` – Errors that may affect execution
+
+The default log level is `INFO`. To see debug logs, modify the level in `logger.py`.
 
 ## Tools
 

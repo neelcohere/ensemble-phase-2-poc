@@ -12,6 +12,7 @@ class ResolutionAgent(BaseAgent):
 
     def render_prompt(self, state: WorkflowState) -> str:
         """Build resolution prompt using global params and acount data output"""
+        self.logger.info(f"Rendering resolution prompt for account: {state['account_number']}")
         research_agent_output = get_node_output(
             state, AccountResearchAgent.node_id
         )
@@ -27,6 +28,7 @@ class ResolutionAgent(BaseAgent):
 
     def execute(self, prompt: str, state: WorkflowState) -> str:
         """Run the resolution agent."""
+        self.logger.info(f"Executing resolution actions for account: {state['account_number']}")
         post_contractual_adjustment = PostContractualAdjustment(
             account_number=state["account_number"],
             client_name=state["client_name"],
@@ -44,4 +46,5 @@ class ResolutionAgent(BaseAgent):
             input={"messages": [{"role": "user", "content": prompt}]},
         )
 
+        self.logger.info("Resolution agent completed successfully")
         return result["messages"][-1].content

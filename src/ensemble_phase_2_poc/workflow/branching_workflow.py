@@ -23,19 +23,26 @@ class BranchingAccountResolutionWorkflow(LangGraphResponsesAgent):
 
     def build_workflow(self) -> StateGraph:
         """Define the workflow graph"""
+        self.logger.info("Building branching account resolution workflow")
+
         # Instantiate nodes
         research = AccountResearchAgent()
         resolution = ResolutionAgent()
         post_note = AccountNoteAgent()
         triage = TriageAgent()
 
+        self.logger.debug(f"Nodes initialized: {research.node_id}, {triage.node_id}, {resolution.node_id}, {post_note.node_id}")
+
         # Define routing functions
         def _route_to_agent(state: WorkflowState) -> bool:
             triage_output = get_node_output(state, triage.node_id).lower()
 
             if triage_output not in ["agent", "human"]:
+                self.logger.error(f"Invalid triage output received: {triage_output}")
                 raise ValueError(f"Invalid triage agent output: {triage_output}")
 
+            route_target = "resolution_agent" if triage_output == "agent" else "END"
+            self.logger.info(f"Routing decision: {triage_output} -> {route_target}")
             return True if triage_output == "agent" else False
 
         # Create the graph
@@ -61,4 +68,5 @@ class BranchingAccountResolutionWorkflow(LangGraphResponsesAgent):
         graph.add_edge(resolution.node_id, post_note.node_id)
         graph.add_edge(post_note.node_id, END)
 
+        self.logger.info("Branching workflow graph built successfully")
         return graph

@@ -9,6 +9,7 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Callable, Sequence
+from logging import Logger
 
 from langchain_core.tools import BaseTool
 from langchain.agents import create_agent
@@ -16,6 +17,7 @@ from langgraph.graph.state import CompiledStateGraph
 
 from ensemble_phase_2_poc.state import WorkflowState, NodeExecution, get_node_output
 from ensemble_phase_2_poc.inference import get_model
+from ensemble_phase_2_poc.logger import get_logger
 
 
 class BaseAgent(ABC):
@@ -33,6 +35,15 @@ class BaseAgent(ABC):
     def depends_on(self) -> list[str]:
         """List of node_ids this node depends on"""
         return []
+
+    @property
+    def logger(self) -> Logger:
+        """Logger instance for this agent, named after the concrete class."""
+        if not hasattr(self, '_logger'):
+            self._logger = get_logger(
+                f"{self.__class__.__module__}.{self.__class__.__name__}"
+            )
+        return self._logger
 
     @classmethod
     def get_prompt(cls, name: str) -> str:

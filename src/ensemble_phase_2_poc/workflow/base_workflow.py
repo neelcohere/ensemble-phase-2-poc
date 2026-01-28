@@ -7,12 +7,14 @@
 
 from abc import ABC, abstractmethod
 
+from logging import Logger
 from langgraph.graph import StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from mlflow.pyfunc import ResponsesAgent
 from mlflow.types.responses import ResponsesAgentRequest, ResponsesAgentResponse
 
 from ensemble_phase_2_poc.state import WorkflowState, get_node_output
+from ensemble_phase_2_poc.logger import get_logger
 
 
 class LangGraphResponsesAgent(ResponsesAgent, ABC):
@@ -47,6 +49,15 @@ class LangGraphResponsesAgent(ResponsesAgent, ABC):
         if self._compiled_agent is None:
             self._compiled_agent = self.build_workflow().compile()
         return self._compiled_agent
+
+    @property
+    def logger(self) -> Logger:
+        """Logger instance for this agent, named after the concrete class."""
+        if not hasattr(self, '_logger'):
+            self._logger = get_logger(
+                f"{self.__class__.__module__}.{self.__class__.__name__}"
+            )
+        return self._logger
 
     @abstractmethod
     def build_workflow(self) -> StateGraph:
