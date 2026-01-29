@@ -11,6 +11,7 @@ class TriageAgent(BaseAgent):
 
     def render_prompt(self, state: WorkflowState) -> str:
         """Build triage prompt using global params and acount data output"""
+        self.logger.info(f"Rendering triage prompt for account: {state['account_number']}")
         research_agent_output = get_node_output(
             state, AccountResearchAgent.node_id
         )
@@ -26,6 +27,7 @@ class TriageAgent(BaseAgent):
 
     def execute(self, prompt: str, state: WorkflowState) -> str:
         """Run triage agent"""
+        self.logger.info("Starting triage decision for account routing")
         agent = self.build_agent(
             name=self.node_id,
             model="command-a-03-2025",
@@ -35,4 +37,6 @@ class TriageAgent(BaseAgent):
             input={"messages": [{"role": "user", "content": prompt}]}
         )
 
-        return result["messages"][-1].content
+        triage_decision = result["messages"][-1].content
+        self.logger.info(f"Triage decision: {triage_decision}")
+        return triage_decision

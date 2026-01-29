@@ -26,6 +26,8 @@ class PostAccountNote(Tool):
 
     def _run(self, description: str) -> List[Dict[str, Any]]:
         """Post note - uses self.account_number, etc. + description from LLM"""
+        self.logger.info(f"Posting account note for account: {self.account_number}")
+        self.logger.debug(f"Note content: {description[:100]}..." if len(description) > 100 else f"Note content: {description}")
         return [
             {
                 "status": "success",

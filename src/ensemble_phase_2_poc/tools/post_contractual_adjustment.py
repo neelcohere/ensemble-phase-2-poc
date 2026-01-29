@@ -26,6 +26,7 @@ class PostContractualAdjustment(Tool):
 
     def _run(self, transaction_id: str) -> List[Dict[str, Any]]:
         """Post adjustment - uses self.account_number, etc. + transaction_id from LLM"""
+        self.logger.info(f"Posting contractual adjustment for account: {self.account_number}, transaction: {transaction_id}")
         return [
             {
                 "status": "success",

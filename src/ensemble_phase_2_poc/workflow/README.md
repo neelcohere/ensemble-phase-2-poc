@@ -48,8 +48,41 @@ The base class handles:
 - Compiling the `StateGraph` into an executable
 - Converting `ResponsesAgentRequest` to `WorkflowState`
 - Invoking the graph and returning `ResponsesAgentResponse`
+- **Logging** – Built-in `logger` property for structured logging
 
 For conditional routing, use `add_conditional_edges()` — see `branching_workflow.py` for an example.
+
+## Logging
+
+All workflows have access to a `self.logger` property provided by `LangGraphResponsesAgent`. The logger is automatically named after the concrete class (e.g., `ensemble_phase_2_poc.workflow.sequential_workflow.SequentialAccountResolutionWorkflow`).
+
+### Usage
+
+```python
+class MyWorkflow(LangGraphResponsesAgent):
+    def build_workflow(self) -> StateGraph:
+        self.logger.info("Building workflow")
+        
+        agent_a = MyAgentA()
+        agent_b = MyAgentB()
+        
+        self.logger.debug(f"Nodes: {agent_a.node_id}, {agent_b.node_id}")
+        
+        graph = StateGraph(WorkflowState)
+        # ... build graph ...
+        
+        self.logger.info("Workflow built successfully")
+        return graph
+```
+
+### Log Levels
+
+- `self.logger.debug()` – Detailed diagnostic information (not shown by default)
+- `self.logger.info()` – General operational messages
+- `self.logger.warning()` – Potential issues that don't prevent execution
+- `self.logger.error()` – Errors that may affect execution
+
+The default log level is `INFO`. To see debug logs, modify the level in `logger.py`.
 
 ## Adding to the CLI
 
