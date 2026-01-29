@@ -8,7 +8,9 @@ from ensemble_phase_2_poc.inference.cohere import CustomChatCohere
 
 load_dotenv(dotenv_path=".env", override=True)
 
-
+# TODO: cost tracking
+# TODO: response caching
+# TODO: error handling
 class ChatFactory():
     PROVIDER_REGISTRY: dict = {
         "cohere": CustomChatCohere,
@@ -34,12 +36,3 @@ class ChatFactory():
                 name=model,
                 **kwargs
             )
-
-"""
-access to multiple LLM APIs with a single interface
-API error handling. It should be evident where errors are coming from in the workflow
-API key management
-Cost tracking (?)
-LLM response caching
-configurable parallelism and associated stability features like retry-backoff
-"""
