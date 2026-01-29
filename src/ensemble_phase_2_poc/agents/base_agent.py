@@ -15,7 +15,7 @@ from langchain.agents import create_agent
 from langgraph.graph.state import CompiledStateGraph
 
 from ensemble_phase_2_poc.state import WorkflowState, NodeExecution, get_node_output
-from ensemble_phase_2_poc.inference import get_model
+from ensemble_phase_2_poc.inference.router import ChatFactory
 
 
 class BaseAgent(ABC):
@@ -113,7 +113,7 @@ class BaseAgent(ABC):
         """Agent constructor"""
 
         return create_agent(
-            model=get_model(model, tools),
+            model=ChatFactory.get_model("cohere", model), # TODO: use the router method
             tools=tools or [],
             name=name or self.node_id,
             system_prompt=system_prompt,
