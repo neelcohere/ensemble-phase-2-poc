@@ -1,10 +1,8 @@
 from dotenv import load_dotenv
 import os
-from typing import List, Any
 from langchain_core.language_models import BaseChatModel
-from langchain_openai import ChatOpenAI
-
 from ensemble_phase_2_poc.inference.cohere import CustomChatCohere
+from ensemble_phase_2_poc.inference.openai import CustomChatOpenAI
 
 load_dotenv(dotenv_path=".env", override=True)
 
@@ -12,9 +10,10 @@ load_dotenv(dotenv_path=".env", override=True)
 # TODO: response caching
 # TODO: error handling
 class ChatFactory():
+    # used to 1) surface available options in cli, 2) for test cases in test/test_inference.py
     PROVIDER_REGISTRY: dict = {
         "cohere": CustomChatCohere,
-        "openai": ChatOpenAI
+        "openai": CustomChatOpenAI
     }
 
     @classmethod
@@ -31,8 +30,10 @@ class ChatFactory():
                 **kwargs
             )
         elif provider == "openai":
-            return ChatOpenAI(
+            return CustomChatOpenAI(
                 api_key=os.environ["OPENAI_API_KEY"],
                 name=model,
                 **kwargs
             )
+        else:
+            raise ValueError(f"provider not supported. Supported providers are: {cls.PROVIDER_REGISTRY.keys()}")
