@@ -9,7 +9,7 @@ def test_unsupported_provider():
             model="Unsupported-32B",
         )
 
-# ChatFactory should instantiate the correct Chat class for supported model providers
+# ChatFactory should instantiate the correct Chat class for each supported model provider
 @pytest.mark.parametrize("provider,expected_class", list(ChatFactory.PROVIDER_REGISTRY.items()))
 def test_provider_routing(provider, expected_class):
     chat_model = ChatFactory.get_model(
