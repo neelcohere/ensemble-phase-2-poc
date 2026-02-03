@@ -16,6 +16,6 @@ def test_provider_routing(provider, expected_class):
     chat_model = ChatFactory.get_model(
         provider=provider,
         model="dummy_model",
-        api_key="some_api_key"
+        api_key="some_api_key" # this works because API key errors are not thrown until model is actually invoked
     )
     assert isinstance(chat_model, expected_class)
