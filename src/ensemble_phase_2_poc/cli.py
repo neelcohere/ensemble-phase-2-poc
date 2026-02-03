@@ -39,7 +39,7 @@ def _add_common_args(parser: argparse.ArgumentParser) -> None:
         "-t",
         "--tracking-uri",
         type=str,
-        default="http://localhost:5000",
+        default="http://localhost:5001",
         help="The MLflow tracking server URI.",
     )
 

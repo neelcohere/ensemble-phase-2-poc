@@ -192,10 +192,12 @@ uv sync
 
 2. Run the following command:
 ```
-uvx mlflow server
+uvx mlflow server -p 5001
 ```
-This will setup the mlflow server on https://localhost:5000. We recommend running the mlflow server
+This will setup the mlflow server on https://localhost:5001. We recommend running the mlflow server
 in one terminal instance (i.e. use tmux) while triggering workflows in another.
+
+This will by default setup a backend store URI at `sqlite:///mlflow.db`
 
 ## CLI Usage
 
