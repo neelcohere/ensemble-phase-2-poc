@@ -1,3 +1,5 @@
+import os
+
 from ensemble_phase_2_poc.state import WorkflowState, get_node_output
 from ensemble_phase_2_poc.agents.base_agent import BaseAgent
 from ensemble_phase_2_poc.agents.account_research_agent import AccountResearchAgent
@@ -38,7 +40,9 @@ class ResolutionAgent(BaseAgent):
 
         agent = self.build_agent(
             name=self.node_id,
-            model="command-a-03-2025",
+            model_provider="cohere",
+            model_name="command-a-03-2025",
+            api_key=os.environ["COHERE_API_KEY"],
             tools=[post_contractual_adjustment],
         )
 

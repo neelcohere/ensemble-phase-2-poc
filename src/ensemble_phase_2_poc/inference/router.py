@@ -1,5 +1,4 @@
 from dotenv import load_dotenv
-import os
 from langchain_core.language_models import BaseChatModel
 from ensemble_phase_2_poc.inference.cohere import CustomChatCohere
 from ensemble_phase_2_poc.inference.openai import CustomChatOpenAI
@@ -21,17 +20,18 @@ class ChatFactory():
         cls,
         provider: str,
         model: str,
+        api_key: str,
         **kwargs
     ) -> BaseChatModel:
         if provider == "cohere":
             return CustomChatCohere(
-                cohere_api_key=os.environ["COHERE_API_KEY"],
+                cohere_api_key=api_key,
                 model=model,
                 **kwargs
             )
         elif provider == "openai":
             return CustomChatOpenAI(
-                api_key=os.environ["OPENAI_API_KEY"],
+                api_key=api_key,
                 name=model,
                 **kwargs
             )
