@@ -41,7 +41,7 @@ def parse_args() -> argparse.Namespace:
         "-t",
         "--tracking-uri",
         type=str,
-        default="http://localhost:5000",
+        default="http://localhost:5001",
         help="The MLflow tracking server URI.",
     )
     parser.add_argument(
