@@ -1,5 +1,4 @@
 from dotenv import load_dotenv
-import os
 from langchain_core.language_models import BaseChatModel
 from ensemble_phase_2_poc.inference.cohere import CustomChatCohere
 from ensemble_phase_2_poc.inference.openai import CustomChatOpenAI
