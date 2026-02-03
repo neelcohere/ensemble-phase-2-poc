@@ -122,7 +122,12 @@ def token_cost(trace: Trace) -> Feedback:
     # Retrieve the pricing for the provider / model and calculate cost
     cost = token_usage["input_tokens"] * inp_out_pricing[0] / 1e6 + token_usage["output_tokens"] * inp_out_pricing[1] / 1e6
 
-    return cost
+    return Feedback(
+        name="token_cost",
+        value=cost,
+        rationale=f"Priced for {provider}/{model} with the following token usage: {token_usage}",
+        metadata={"type": "business"}
+    )
 
 
 def _param_match(trace: Trace, expectations: Dict[str, Any]) -> Feedback:

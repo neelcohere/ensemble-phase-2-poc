@@ -480,7 +480,7 @@ class TestTokenCostScorer:
             output_tokens=500
         )
         
-        cost = token_cost(trace)
+        cost = token_cost(trace).value
         
         # command-a-03-2025: input=$2.50/1M, output=$10.00/1M
         # Expected: (1000 * 2.50 / 1e6) + (500 * 10.00 / 1e6) = 0.0025 + 0.005 = 0.0075
@@ -495,7 +495,7 @@ class TestTokenCostScorer:
             output_tokens=1000
         )
         
-        cost = token_cost(trace)
+        cost = token_cost(trace).value
         
         # gpt-4.1-mini: input=$0.80/1M, output=$3.20/1M
         # Expected: (2000 * 0.80 / 1e6) + (1000 * 3.20 / 1e6) = 0.0016 + 0.0032 = 0.0048
