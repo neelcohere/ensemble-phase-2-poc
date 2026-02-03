@@ -7,6 +7,7 @@ def test_unsupported_provider():
         ChatFactory.get_model(
             provider="Unsupported",
             model="Unsupported-32B",
+            api_key="unsupported-123456oi90"
         )
 
 # ChatFactory should instantiate the correct Chat class for each supported model provider
@@ -14,6 +15,7 @@ def test_unsupported_provider():
 def test_provider_routing(provider, expected_class):
     chat_model = ChatFactory.get_model(
         provider=provider,
-        model="dummy_model"
+        model="dummy_model",
+        api_key="some_api_key"
     )
     assert isinstance(chat_model, expected_class)
