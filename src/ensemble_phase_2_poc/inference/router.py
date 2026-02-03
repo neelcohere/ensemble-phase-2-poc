@@ -1,4 +1,3 @@
-import os
 from dotenv import load_dotenv
 from langchain_core.language_models import BaseChatModel
 from ensemble_phase_2_poc.inference.cohere import CustomChatCohere
@@ -69,4 +68,4 @@ class ChatFactory():
         elif provider == "openai":
             return OPENAI_MODEL_PRICING[model]
         else:
-            raise ValueError(f"provider not supported")
+            raise ValueError("Provider not supported")

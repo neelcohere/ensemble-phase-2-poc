@@ -1,8 +1,8 @@
 import pytest
-from unittest.mock import MagicMock, PropertyMock
+from unittest.mock import MagicMock
 from typing import Dict, Any, List, Optional
 
-from mlflow.entities import SpanType, SpanStatus, SpanStatusCode
+from mlflow.entities import SpanType, SpanStatusCode
 
 from ensemble_phase_2_poc.scorers import (
     tool_error,
