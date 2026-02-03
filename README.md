@@ -199,7 +199,7 @@ in one terminal instance (i.e. use tmux) while triggering workflows in another.
 
 This will by default setup a backend store URI at `sqlite:///mlflow.db`
 
-## CLI Usage
+## Running a test workflow
 
 1. Ensure you have an API key defined for the model you intend to use in a `.env` file in the root:
 ```
