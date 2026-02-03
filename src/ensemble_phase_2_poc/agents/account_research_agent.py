@@ -1,3 +1,5 @@
+import os
+
 from ensemble_phase_2_poc.state import WorkflowState
 from ensemble_phase_2_poc.agents.base_agent import BaseAgent
 from ensemble_phase_2_poc.tools import GetAccountData
@@ -32,7 +34,9 @@ class AccountResearchAgent(BaseAgent):
 
         agent = self.build_agent(
             name=self.node_id,
-            model="command-a-03-2025",
+            model_provider="cohere",
+            model_name="command-a-03-2025",
+            api_key=os.environ["COHERE_API_KEY"],
             tools=[get_account_data],
         )
 

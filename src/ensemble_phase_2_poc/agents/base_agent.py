@@ -115,7 +115,9 @@ class BaseAgent(ABC):
 
     def build_agent(
         self,
-        model: str,
+        model_provider: str,
+        model_name: str,
+        api_key: str,
         tools: Sequence[BaseTool | Callable[..., Any] | dict[str, Any]] | None = None,
         system_prompt: str | None = None,
         name: str | None = None,
@@ -124,7 +126,7 @@ class BaseAgent(ABC):
         """Agent constructor"""
 
         return create_agent(
-            model=ChatFactory.get_model("cohere", model), # TODO: use the router method
+            model=ChatFactory.get_model(model_provider, model_name, api_key), # TODO: use the router method
             tools=tools or [],
             name=name or self.node_id,
             system_prompt=system_prompt,
