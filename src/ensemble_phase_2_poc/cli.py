@@ -112,7 +112,9 @@ def run(args: argparse.Namespace) -> None:
 
 def evaluate(args: argparse.Namespace) -> None:
     """Run evaluation with scorers on a dataset."""
-    from ensemble_phase_2_poc.scorers import tool_error, token_cost, precision
+    from ensemble_phase_2_poc.scorers import (
+        tool_error, token_cost, precision, tool_match, param_match
+    )
 
     # Configure MLflow
     mlflow.set_tracking_uri(args.tracking_uri)
@@ -159,6 +161,8 @@ def evaluate(args: argparse.Namespace) -> None:
             tool_error,
             token_cost,
             precision,
+            tool_match,
+            param_match,
         ],
     )
 

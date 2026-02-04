@@ -7,9 +7,9 @@ from mlflow.entities import SpanType, SpanStatusCode
 from ensemble_phase_2_poc.scorers import (
     tool_error,
     precision,
+    tool_match,
+    param_match,
     token_cost,
-    _tool_match,
-    _param_match,
 )
 
 
@@ -155,7 +155,7 @@ class TestToolErrorScorer:
     """Tests for the tool_error diagnostic scorer."""
 
     def test_no_tools_no_errors(self, trace_no_tools):
-        """When no tools are called, there should be no errors."""
+        """If no tools are called in the workflow, the tool_error score should be False."""
         feedback = tool_error(trace_no_tools)
         
         assert feedback.name == "tool_error"
@@ -163,7 +163,7 @@ class TestToolErrorScorer:
         assert "No tools with errors" in feedback.rationale
 
     def test_successful_tools_no_errors(self, trace_multiple_tools):
-        """When all tools succeed, there should be no errors."""
+        """If all called tools succeed without errors, the tool_error score should be False."""
         feedback = tool_error(trace_multiple_tools)
         
         assert feedback.name == "tool_error"
@@ -171,7 +171,7 @@ class TestToolErrorScorer:
         assert "No tools with errors" in feedback.rationale
 
     def test_single_tool_error(self, trace_with_tool_error):
-        """When one tool has an error, it should be flagged."""
+        """If one tool has an error status, the tool_error score should be True with the count of 1."""
         feedback = tool_error(trace_with_tool_error)
         
         assert feedback.name == "tool_error"
@@ -179,7 +179,7 @@ class TestToolErrorScorer:
         assert "1 tool calls with an error" in feedback.rationale
 
     def test_multiple_tool_errors(self, trace_all_tool_errors):
-        """When multiple tools have errors, count should be correct."""
+        """If multiple tools have error status, the tool_error score should be True with the correct error count."""
         feedback = tool_error(trace_all_tool_errors)
         
         assert feedback.name == "tool_error"
@@ -187,13 +187,13 @@ class TestToolErrorScorer:
         assert "2 tool calls with an error" in feedback.rationale
 
 
-# Tests for precision (_tool_match)
+# Tests for tool_match scorer
 
 class TestToolMatch:
-    """Tests for the _tool_match function."""
+    """Tests for the tool_match diagnostic scorer."""
 
     def test_exact_match_single_tool(self, trace_single_tool):
-        """Exact match with a single expected tool."""
+        """If there is one expected tool and the workflow called exactly that tool, the tool_match score should be 1.0."""
         expectations = {
             "tool_calls": {
                 "post_contractual_adjustment": {"transaction_id": "1300"}
@@ -201,14 +201,14 @@ class TestToolMatch:
             "in_scope": True
         }
         
-        feedback = _tool_match(trace_single_tool, expectations)
+        feedback = tool_match(trace_single_tool, expectations)
         
         assert feedback.name == "tool_match"
         assert feedback.value == 1.0
         assert "Exact tool match" in feedback.rationale
 
     def test_exact_match_multiple_tools(self, trace_multiple_tools):
-        """Exact match with multiple expected tools."""
+        """If there are multiple expected tools and the workflow called exactly those tools, the tool_match score should be 1.0."""
         expectations = {
             "tool_calls": {
                 "get_account_data": None,
@@ -217,14 +217,14 @@ class TestToolMatch:
             "in_scope": True
         }
         
-        feedback = _tool_match(trace_multiple_tools, expectations)
+        feedback = tool_match(trace_multiple_tools, expectations)
         
         assert feedback.name == "tool_match"
         assert feedback.value == 1.0
         assert "Exact tool match" in feedback.rationale
 
     def test_missing_tool(self, trace_single_tool):
-        """When an expected tool is not called."""
+        """If an expected tool is not called by the workflow, the tool_match score should be 0.0 with 'missing' in the rationale."""
         expectations = {
             "tool_calls": {
                 "post_contractual_adjustment": {"transaction_id": "1300"},
@@ -233,7 +233,7 @@ class TestToolMatch:
             "in_scope": True
         }
         
-        feedback = _tool_match(trace_single_tool, expectations)
+        feedback = tool_match(trace_single_tool, expectations)
         
         assert feedback.name == "tool_match"
         assert feedback.value == 0.0
@@ -241,7 +241,7 @@ class TestToolMatch:
         assert "post_account_note" in feedback.rationale
 
     def test_extra_tool(self, trace_multiple_tools):
-        """When an unexpected tool is called."""
+        """If the workflow calls an unexpected tool not in expectations, the tool_match score should be 0.0 with 'unexpected' in the rationale."""
         expectations = {
             "tool_calls": {
                 "get_account_data": None,
@@ -250,7 +250,7 @@ class TestToolMatch:
             "in_scope": True
         }
         
-        feedback = _tool_match(trace_multiple_tools, expectations)
+        feedback = tool_match(trace_multiple_tools, expectations)
         
         assert feedback.name == "tool_match"
         assert feedback.value == 0.0
@@ -258,7 +258,7 @@ class TestToolMatch:
         assert "post_account_note" in feedback.rationale
 
     def test_missing_and_extra_tools(self, trace_single_tool):
-        """When there are both missing and unexpected tools."""
+        """If there are both missing expected tools and unexpected called tools, the tool_match score should be 0.0 with both 'missing' and 'unexpected' in the rationale."""
         expectations = {
             "tool_calls": {
                 "get_account_data": None, # Expected but not called
@@ -266,7 +266,7 @@ class TestToolMatch:
             "in_scope": True
         }
         
-        feedback = _tool_match(trace_single_tool, expectations)
+        feedback = tool_match(trace_single_tool, expectations)
         
         assert feedback.name == "tool_match"
         assert feedback.value == 0.0
@@ -274,39 +274,37 @@ class TestToolMatch:
         assert "unexpected=" in feedback.rationale
 
     def test_out_of_scope_no_tools_called(self, trace_no_tools):
-        """Out-of-scope account with no tools called should pass."""
+        """If the account is out-of-scope and the workflow correctly skipped it (no tools called), the tool_match scorer should return None to exclude from precision calculation."""
         expectations = {
             "tool_calls": {},
             "in_scope": False
         }
         
-        feedback = _tool_match(trace_no_tools, expectations)
+        feedback = tool_match(trace_no_tools, expectations)
         
-        assert feedback.name == "tool_match"
-        assert feedback.value == 1.0
-        assert "Out-of-scope account correctly skipped" in feedback.rationale
+        assert feedback is None
 
     def test_out_of_scope_tools_called(self, trace_single_tool):
-        """Out-of-scope account with tools called should fail."""
+        """If the account is out-of-scope but the workflow incorrectly called tools, the tool_match score should be 0.0."""
         expectations = {
             "tool_calls": {},
             "in_scope": False
         }
         
-        feedback = _tool_match(trace_single_tool, expectations)
+        feedback = tool_match(trace_single_tool, expectations)
         
         assert feedback.name == "tool_match"
         assert feedback.value == 0.0
         assert "Out-of-scope account incorrectly attempted" in feedback.rationale
 
 
-# Tests for precision (_param_match)
+# Tests for param_match scorer
 
 class TestParamMatch:
-    """Tests for the _param_match function."""
+    """Tests for the param_match diagnostic scorer."""
 
     def test_exact_param_match(self, trace_single_tool):
-        """All parameters match exactly."""
+        """If all expected parameters match the actual tool call parameters exactly, the param_match score should be 1.0."""
         expectations = {
             "tool_calls": {
                 "post_contractual_adjustment": {"transaction_id": "1300"}
@@ -314,14 +312,14 @@ class TestParamMatch:
             "in_scope": True
         }
         
-        feedback = _param_match(trace_single_tool, expectations)
+        feedback = param_match(trace_single_tool, expectations)
         
         assert feedback.name == "param_match"
         assert feedback.value == 1.0
         assert "All parameters match" in feedback.rationale
 
     def test_missing_parameter(self, trace_single_tool):
-        """When an expected parameter is missing from the actual call."""
+        """If an expected parameter is missing from the actual tool call, the param_match score should be 0.0 with the missing parameter name in the rationale."""
         expectations = {
             "tool_calls": {
                 "post_contractual_adjustment": {
@@ -332,14 +330,14 @@ class TestParamMatch:
             "in_scope": True
         }
         
-        feedback = _param_match(trace_single_tool, expectations)
+        feedback = param_match(trace_single_tool, expectations)
         
         assert feedback.name == "param_match"
         assert feedback.value == 0.0
         assert "missing_param: missing" in feedback.rationale
 
     def test_wrong_parameter_value(self, trace_single_tool):
-        """When a parameter has the wrong value."""
+        """If a parameter has the wrong value compared to expectations, the param_match score should be 0.0 with expected/actual values in the rationale."""
         expectations = {
             "tool_calls": {
                 "post_contractual_adjustment": {
@@ -349,7 +347,7 @@ class TestParamMatch:
             "in_scope": True
         }
         
-        feedback = _param_match(trace_single_tool, expectations)
+        feedback = param_match(trace_single_tool, expectations)
         
         assert feedback.name == "param_match"
         assert feedback.value == 0.0
@@ -357,7 +355,7 @@ class TestParamMatch:
         assert "expected '1100'" in feedback.rationale
 
     def test_tool_not_called(self, trace_no_tools):
-        """When an expected tool was not called at all."""
+        """If an expected tool was not called at all, the param_match score should be 0.0 with 'tool not called' in the rationale."""
         expectations = {
             "tool_calls": {
                 "post_contractual_adjustment": {
@@ -367,14 +365,14 @@ class TestParamMatch:
             "in_scope": True
         }
         
-        feedback = _param_match(trace_no_tools, expectations)
+        feedback = param_match(trace_no_tools, expectations)
         
         assert feedback.name == "param_match"
         assert feedback.value == 0.0
         assert "tool not called" in feedback.rationale
 
     def test_no_params_expected_none(self, trace_tool_no_params):
-        """When expected_params is None, no parameter checking should occur."""
+        """If expected_params is None for a tool, parameter checking should be skipped and the param_match score should be 1.0."""
         expectations = {
             "tool_calls": {
                 "get_system_status": None  # No parameters required
@@ -382,14 +380,14 @@ class TestParamMatch:
             "in_scope": True
         }
         
-        feedback = _param_match(trace_tool_no_params, expectations)
+        feedback = param_match(trace_tool_no_params, expectations)
         
         assert feedback.name == "param_match"
         assert feedback.value == 1.0
         assert "All parameters match" in feedback.rationale
 
     def test_no_params_expected_empty_dict(self, trace_tool_no_params):
-        """When expected_params is empty dict, no parameter checking should occur."""
+        """If expected_params is an empty dict for a tool, parameter checking should be skipped and the param_match score should be 1.0."""
         expectations = {
             "tool_calls": {
                 "get_system_status": {}  # Empty dict - no parameters required
@@ -397,33 +395,31 @@ class TestParamMatch:
             "in_scope": True
         }
         
-        feedback = _param_match(trace_tool_no_params, expectations)
+        feedback = param_match(trace_tool_no_params, expectations)
         
         assert feedback.name == "param_match"
         assert feedback.value == 1.0
         assert "All parameters match" in feedback.rationale
 
     def test_out_of_scope_no_tools(self, trace_no_tools):
-        """Out-of-scope with no tools called should pass."""
+        """If the account is out-of-scope and the workflow correctly skipped it (no tools called), the param_match scorer should return None to exclude from precision calculation."""
         expectations = {
             "tool_calls": {},
             "in_scope": False
         }
         
-        feedback = _param_match(trace_no_tools, expectations)
+        feedback = param_match(trace_no_tools, expectations)
         
-        assert feedback.name == "param_match"
-        assert feedback.value == 1.0
-        assert "Out-of-scope" in feedback.rationale
+        assert feedback is None
 
     def test_out_of_scope_tools_called(self, trace_single_tool):
-        """Out-of-scope with tools called should fail."""
+        """If the account is out-of-scope but the workflow incorrectly called tools, the param_match score should be 0.0."""
         expectations = {
             "tool_calls": {},
             "in_scope": False
         }
         
-        feedback = _param_match(trace_single_tool, expectations)
+        feedback = param_match(trace_single_tool, expectations)
         
         assert feedback.name == "param_match"
         assert feedback.value == 0.0
@@ -433,10 +429,10 @@ class TestParamMatch:
 # Tests for precision scorer (combined tool_match + param_match)
 
 class TestPrecisionScorer:
-    """Tests for the precision scorer which combines tool and param matching."""
+    """Tests for the precision scorer which combines tool and param matching into a single business metric."""
 
-    def test_precision_returns_two_feedbacks(self, trace_single_tool):
-        """Precision scorer should return both tool_match and param_match feedbacks."""
+    def test_precision_returns_single_feedback(self, trace_single_tool):
+        """If the precision scorer is called, it should return a single Feedback object named 'precision'."""
         expectations = {
             "tool_calls": {
                 "post_contractual_adjustment": {"transaction_id": "1300"}
@@ -444,26 +440,86 @@ class TestPrecisionScorer:
             "in_scope": True
         }
         
-        feedbacks = precision(trace_single_tool, expectations)
+        feedback = precision(trace_single_tool, expectations)
         
-        assert len(feedbacks) == 2
-        feedback_names = {fb.name for fb in feedbacks}
-        assert feedback_names == {"tool_match", "param_match"}
+        assert feedback.name == "precision"
+        assert feedback.metadata["type"] == "business"
 
     def test_precision_both_pass(self, trace_single_tool):
-        """When both tool and param match, both should have value 1.0."""
+        """If both tool_match and param_match score 1.0, the precision score should be 1.0 (1.0 and 1.0 = 1.0)."""
         expectations = {
             "tool_calls": {"post_contractual_adjustment": {"transaction_id": "1300"}},
             "in_scope": True
         }
         
-        feedbacks = precision(trace_single_tool, expectations)
+        feedback = precision(trace_single_tool, expectations)
         
-        tool_fb = next(fb for fb in feedbacks if fb.name == "tool_match")
-        param_fb = next(fb for fb in feedbacks if fb.name == "param_match")
+        assert feedback.value == 1.0
+
+    def test_precision_tool_match_fails(self, trace_single_tool):
+        """If tool_match fails (0.0) but param_match passes, the precision score should be 0.0 (0.0 and 1.0 = 0.0)."""
+        expectations = {
+            "tool_calls": {
+                "post_contractual_adjustment": {"transaction_id": "1300"},
+                "post_account_note": None,  # Missing tool - will cause tool_match to fail
+            },
+            "in_scope": True
+        }
         
-        assert tool_fb.value == 1.0
-        assert param_fb.value == 1.0
+        feedback = precision(trace_single_tool, expectations)
+        
+        assert feedback.value == 0.0
+
+    def test_precision_param_match_fails(self, trace_single_tool):
+        """If tool_match passes but param_match fails (0.0), the precision score should be 0.0 (1.0 and 0.0 = 0.0)."""
+        expectations = {
+            "tool_calls": {
+                "post_contractual_adjustment": {"transaction_id": "9999"},  # Wrong param value
+            },
+            "in_scope": True
+        }
+        
+        feedback = precision(trace_single_tool, expectations)
+        
+        assert feedback.value == 0.0
+
+    def test_precision_both_fail(self, trace_single_tool):
+        """If both tool_match and param_match fail (0.0), the precision score should be 0.0 (0.0 and 0.0 = 0.0)."""
+        expectations = {
+            "tool_calls": {
+                "get_account_data": {"account_id": "123"},  # Different tool with different params
+            },
+            "in_scope": True
+        }
+        
+        feedback = precision(trace_single_tool, expectations)
+        
+        assert feedback.value == 0.0
+
+    def test_precision_out_of_scope_correctly_skipped(self, trace_no_tools):
+        """If an out-of-scope account is correctly skipped (no tools called), the precision scorer should return None to exclude from precision calculation."""
+        expectations = {
+            "tool_calls": {},
+            "in_scope": False
+        }
+        
+        feedback = precision(trace_no_tools, expectations)
+        
+        assert feedback is None
+
+    def test_precision_out_of_scope_incorrectly_attempted(self, trace_single_tool):
+        """If an out-of-scope account is incorrectly attempted (tools were called), the precision score should be 0.0 (False) since both tool_match and param_match fail."""
+        expectations = {
+            "tool_calls": {},
+            "in_scope": False
+        }
+        
+        feedback = precision(trace_single_tool, expectations)
+        
+        assert feedback is not None
+        assert feedback.name == "precision"
+        # 0.0 and 0.0 evaluates to 0.0, which is false
+        assert feedback.value == 0.0
 
 
 # Tests for token_cost scorer
@@ -472,7 +528,7 @@ class TestTokenCostScorer:
     """Tests for the token_cost scorer."""
 
     def test_token_cost_cohere_model(self):
-        """Calculate cost for a Cohere model."""
+        """If a Cohere model is used with known input/output tokens, the token_cost should be calculated using Cohere's pricing rates."""
         trace = create_mock_trace_with_token_usage(
             provider="cohere",
             model="command-a-03-2025",
@@ -482,12 +538,12 @@ class TestTokenCostScorer:
         
         cost = token_cost(trace).value
         
-        # command-a-03-2025: input=$2.50/1M, output=$10.00/1M
+        # command-a-03-2025: input = $2.50/1M, output = $10.00/1M
         # Expected: (1000 * 2.50 / 1e6) + (500 * 10.00 / 1e6) = 0.0025 + 0.005 = 0.0075
         assert abs(cost - 0.0075) < 1e-9
 
     def test_token_cost_openai_model(self):
-        """Calculate cost for an OpenAI model."""
+        """If OpenAI model is used with known input/output tokens, the token_cost should be calculated using OpenAI's pricing rates."""
         trace = create_mock_trace_with_token_usage(
             provider="openai",
             model="gpt-4.1-mini",
@@ -497,6 +553,6 @@ class TestTokenCostScorer:
         
         cost = token_cost(trace).value
         
-        # gpt-4.1-mini: input=$0.80/1M, output=$3.20/1M
+        # gpt-4.1-mini: input = $0.80/1M, output = $3.20/1M
         # Expected: (2000 * 0.80 / 1e6) + (1000 * 3.20 / 1e6) = 0.0016 + 0.0032 = 0.0048
         assert abs(cost - 0.0048) < 1e-9

@@ -1,6 +1,6 @@
 from mlflow.genai.scorers import scorer
 from mlflow.entities import Trace, Span, Feedback, SpanType, SpanStatusCode
-from typing import Dict, Any, List
+from typing import Dict, Any, Optional
 from ensemble_phase_2_poc.inference.router import ChatFactory
 
 
@@ -32,7 +32,7 @@ def tool_error(trace: Trace) -> Feedback:
 
 
 @scorer
-def precision(trace: Trace, expectations: Dict[str, Any]) -> List[Feedback]:
+def precision(trace: Trace, expectations: Dict[str, Any]) -> Optional[Feedback]:
     """
     Combined scorer returning both tool and parameter-level matching feedbacks.
 
@@ -42,65 +42,33 @@ def precision(trace: Trace, expectations: Dict[str, Any]) -> List[Feedback]:
     Precision = correctly resolved in-scope accounts / all accounts attempted
     ```
     """
-    tool_fb = _tool_match(trace, expectations)
-    param_fb = _param_match(trace, expectations)
+    tool_feedback: Optional[Feedback] = _tool_match_func(trace, expectations)
+    param_feedback: Optional[Feedback] = _param_match_func(trace, expectations)
     
-    # Return combined feedback
-    return [tool_fb, param_fb]
-
-
-def _tool_match(trace: Trace, expectations: Dict[str, Any]) -> Feedback:
-    """Function to calculate the precision of an evaluation samples at the tool call level"""
-
-    # Extract expectation items
-    expected_tool_calls = expectations.get("tool_calls", {})
-    expected_tools = set(expected_tool_calls.keys())
-    is_in_scope = expectations.get("in_scope", True)
+    # If either feedback is None (out-of-scope correctly skipped), return None to exclude from precision
+    if tool_feedback is None or param_feedback is None:
+        return None
     
-    # Extract actual tool calls from trace
-    tool_spans = trace.search_spans(span_type=SpanType.TOOL)
-    actual_tools = set(span.name for span in tool_spans)
-
-    # Handle out-of-scope accounts
-    if not is_in_scope:
-        if len(actual_tools) == 0:
-            return Feedback(
-                name="tool_match",
-                value=1.0,
-                rationale="Out-of-scope account correctly skipped (no tools called).",
-                metadata={"type": "business"}
-            )
-        else:
-            return Feedback(
-                name="tool_match",
-                value=0.0,
-                rationale=f"Out-of-scope account incorrectly attempted. Called: {sorted(actual_tools)}"
-            )
-
-    # Compare the sets of expected and actual tool calls
-    if expected_tools == actual_tools:
-        return Feedback(
-            name="tool_match",
-            value=1.0,
-            rationale=f"Exact tool match. Tools: {sorted(expected_tools)}",
-            metadata={"type": "business"}
-        )
-
-    # Collect failure details
-    missing = expected_tools - actual_tools
-    extra = actual_tools - expected_tools
-    details = []
-    if missing:
-        details.append(f"missing={sorted(missing)}")
-    if extra:
-        details.append(f"unexpected={sorted(extra)}")
-    
+    # Return combined precision score
+    # The logic here is that if the values of both feedback are 1.0, then precision is also 1.0
+    # else 0.0.
     return Feedback(
-        name="tool_match",
-        value=0.0,
-        rationale=f"Tool mismatch. {', '.join(details)}",
+        name="precision",
+        value=tool_feedback.value and param_feedback.value,
         metadata={"type": "business"}
     )
+
+
+@scorer
+def tool_match(trace: Trace, expectations: Dict[str, Any]) -> Optional[Feedback]:
+    """Scorer to calculate the precision of an evaluation samples at the tool call level"""
+    return _tool_match_func(trace, expectations)
+
+
+@scorer
+def param_match(trace: Trace, expectations: Dict[str, Any]) -> Optional[Feedback]:
+    """Scorer to calculate the precision of an evaluation samples at the tool call level"""
+    return _param_match_func(trace, expectations)
 
 
 @scorer
@@ -130,29 +98,76 @@ def token_cost(trace: Trace) -> Feedback:
     )
 
 
-def _param_match(trace: Trace, expectations: Dict[str, Any]) -> Feedback:
-    """Function to calculate the precision of an evaluation samples at the tool call level"""
+def _tool_match_func(trace: Trace, expectations: Dict[str, Any]) -> Optional[Feedback]:
+    """Implementation of tool_match logic. Returns None for out-of-scope correctly skipped accounts."""
 
+    # Extract expectation items
     expected_tool_calls = expectations.get("tool_calls", {})
-    is_in_scope = expectations.get("in_scope", True)
+    expected_tools = set(expected_tool_calls.keys())
+    is_out_of_scope = not expectations.get("in_scope", True)
+    
+    # Extract actual tool calls from trace
+    tool_spans = trace.search_spans(span_type=SpanType.TOOL)
+    actual_tools = set(span.name for span in tool_spans)
+
+    # Handle out-of-scope accounts
+    if is_out_of_scope:
+        if len(actual_tools) == 0:
+            # Return None to exclude from precision calculation
+            return None
+        else:
+            return Feedback(
+                name="tool_match",
+                value=0.0,
+                rationale=f"Out-of-scope account incorrectly attempted. Called: {sorted(actual_tools)}",
+                metadata={"type": "business"}
+            )
+
+    # Compare the sets of expected and actual tool calls
+    if expected_tools == actual_tools:
+        return Feedback(
+            name="tool_match",
+            value=1.0,
+            rationale=f"Exact tool match. Tools: {sorted(expected_tools)}",
+            metadata={"type": "business"}
+        )
+
+    # Collect failure details
+    missing = expected_tools - actual_tools
+    extra = actual_tools - expected_tools
+    details = []
+    if missing:
+        details.append(f"missing={sorted(missing)}")
+    if extra:
+        details.append(f"unexpected={sorted(extra)}")
+    
+    return Feedback(
+        name="tool_match",
+        value=0.0,
+        rationale=f"Tool mismatch. {', '.join(details)}",
+        metadata={"type": "business"}
+    )
+
+
+def _param_match_func(trace: Trace, expectations: Dict[str, Any]) -> Optional[Feedback]:
+    """Implementation of param_match logic. Returns None for out-of-scope correctly skipped accounts."""
+
+    expected_tool_calls = expectations["tool_calls"]
+    is_out_of_scope = not expectations["in_scope"]
     
     # Build actual tool calls dict from trace
     tool_spans = trace.search_spans(span_type=SpanType.TOOL)
-    actual_tool_calls: Dict[str, Dict[str, Any]] = {}
+    workflow_tool_calls: Dict[str, Dict[str, Any]] = {}
     
     for span in tool_spans:
         params = _extract_tool_params(span)
-        actual_tool_calls[span.name] = params
+        workflow_tool_calls[span.name] = params
 
     # Handle out-of-scope accounts
-    if not is_in_scope:
-        if len(actual_tool_calls) == 0:
-            return Feedback(
-                name="param_match",
-                value=1.0,
-                rationale="Out-of-scope - no parameters to evaluate.",
-                metadata={"type": "business"}
-            )
+    if is_out_of_scope:
+        if len(workflow_tool_calls) == 0:
+            # Return None to exclude from precision calculation
+            return None
         else:
             return Feedback(
                 name="param_match",
@@ -164,7 +179,7 @@ def _param_match(trace: Trace, expectations: Dict[str, Any]) -> Feedback:
     # Track param-level mismatches
     mismatches = []
     for tool_name, expected_params in expected_tool_calls.items():
-        if tool_name not in actual_tool_calls:
+        if tool_name not in workflow_tool_calls:
             mismatches.append(f"{tool_name}: tool not called")
             continue
         
@@ -172,7 +187,7 @@ def _param_match(trace: Trace, expectations: Dict[str, Any]) -> Feedback:
         if not expected_params:
             continue
         
-        actual_params = actual_tool_calls[tool_name]
+        actual_params = workflow_tool_calls[tool_name]
         
         # Check each expected parameter
         for param_name, expected_value in expected_params.items():
