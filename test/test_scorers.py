@@ -18,9 +18,19 @@ from ensemble_phase_2_poc.scorers import (
 def create_mock_span(
     name: str,
     inputs: Optional[Dict[str, Any]] = None,
-    status: str = "OK"
+    status: str = "OK",
+    include_in_scorer_check: bool = True
 ) -> MagicMock:
-    """Create a mock Span object with the given properties."""
+    """Create a mock Span object with the given properties.
+    
+    Args:
+        name: The tool name
+        inputs: Input parameters for the tool
+        status: "OK" or "ERROR"
+        include_in_scorer_check: Whether this tool should be included in scorer checks.
+            Defaults to True. Set to False for tools like get_account_data that should not
+            trigger out-of-scope failures.
+    """
     span = MagicMock()
     span.name = name
     span.inputs = inputs if inputs is not None else {}
@@ -32,6 +42,14 @@ def create_mock_span(
     else:
         mock_status.status_code = SpanStatusCode.OK
     span.status = mock_status
+    
+    # Mock get_attribute for include_in_scorer_check
+    def get_attribute_side_effect(attr_name):
+        if attr_name == "include_in_scorer_check":
+            return include_in_scorer_check
+        return None
+    
+    span.get_attribute = MagicMock(side_effect=get_attribute_side_effect)
     
     return span
 
@@ -371,21 +389,6 @@ class TestParamMatch:
         assert feedback.value == 0.0
         assert "tool not called" in feedback.rationale
 
-    def test_no_params_expected_none(self, trace_tool_no_params):
-        """If expected_params is None for a tool, parameter checking should be skipped and the param_match score should be 1.0."""
-        expectations = {
-            "tool_calls": {
-                "get_system_status": None  # No parameters required
-            },
-            "in_scope": True
-        }
-        
-        feedback = param_match(trace_tool_no_params, expectations)
-        
-        assert feedback.name == "param_match"
-        assert feedback.value == 1.0
-        assert "All parameters match" in feedback.rationale
-
     def test_no_params_expected_empty_dict(self, trace_tool_no_params):
         """If expected_params is an empty dict for a tool, parameter checking should be skipped and the param_match score should be 1.0."""
         expectations = {
@@ -520,6 +523,114 @@ class TestPrecisionScorer:
         assert feedback.name == "precision"
         # 0.0 and 0.0 evaluates to 0.0, which is false
         assert feedback.value == 0.0
+
+
+# Tests for include_in_scorer_check filtering
+
+class TestIncludeInScorerCheckFiltering:
+    """Tests for the include_in_scorer_check span attribute filtering behavior."""
+
+    def test_tool_excluded_from_scope_check_not_counted(self):
+        """If a tool has include_in_scorer_check=False, it should not be counted in tool matching for out-of-scope accounts."""
+        # Create a trace with a tool that has include_in_scorer_check=False
+        spans = [
+            create_mock_span("get_account_data", None, include_in_scorer_check=False)
+        ]
+        trace = create_mock_trace(spans)
+        
+        expectations = {
+            "tool_calls": {},
+            "in_scope": False
+        }
+        
+        # Even though a tool was called, it should be excluded from the scope check
+        # and treated as if no tools were called
+        feedback = tool_match(trace, expectations)
+        
+        assert feedback is None  # Correctly skipped
+
+    def test_tool_included_in_scope_check_counted(self):
+        """If a tool has include_in_scorer_check=True (default), it should be counted in tool matching."""
+        spans = [
+            create_mock_span("post_contractual_adjustment", {"transaction_id": "1300"}, include_in_scorer_check=True)
+        ]
+        trace = create_mock_trace(spans)
+        
+        expectations = {
+            "tool_calls": {},
+            "in_scope": False
+        }
+        
+        # Tool should be counted, causing an out-of-scope failure
+        feedback = tool_match(trace, expectations)
+        
+        assert feedback is not None
+        assert feedback.value == 0.0
+        assert "Out-of-scope account incorrectly attempted" in feedback.rationale
+
+    def test_mixed_tools_only_included_ones_counted(self):
+        """If some tools have include_in_scorer_check=False and some have True, only the True ones should be counted."""
+        spans = [
+            create_mock_span("get_account_data", None, include_in_scorer_check=False),
+            create_mock_span("post_contractual_adjustment", {"transaction_id": "1300"}, include_in_scorer_check=True)
+        ]
+        trace = create_mock_trace(spans)
+        
+        # Expectations should only include the tool that's counted
+        expectations = {
+            "tool_calls": {
+                "post_contractual_adjustment": {"transaction_id": "1300"}
+            },
+            "in_scope": True
+        }
+        
+        feedback = tool_match(trace, expectations)
+        
+        assert feedback.value == 1.0
+        assert "Exact tool match" in feedback.rationale
+
+    def test_param_match_excludes_filtered_tools(self):
+        """If a tool has include_in_scorer_check=False, its parameters should not be checked."""
+        spans = [
+            create_mock_span("get_account_data", {"wrong_param": "value"}, include_in_scorer_check=False),
+            create_mock_span("post_contractual_adjustment", {"transaction_id": "1300"}, include_in_scorer_check=True)
+        ]
+        trace = create_mock_trace(spans)
+        
+        expectations = {
+            "tool_calls": {
+                "post_contractual_adjustment": {"transaction_id": "1300"}
+            },
+            "in_scope": True
+        }
+        
+        # get_account_data's params should be ignored
+        feedback = param_match(trace, expectations)
+        
+        assert feedback.value == 1.0
+        assert "All parameters match" in feedback.rationale
+
+    def test_out_of_scope_with_excluded_tool_returns_none(self):
+        """If an out-of-scope account only calls tools with include_in_scorer_check=False, it should be treated as correctly skipped."""
+        spans = [
+            create_mock_span("get_account_data", None, include_in_scorer_check=False),
+            create_mock_span("post_account_note", {"description": "test"}, include_in_scorer_check=False)
+        ]
+        trace = create_mock_trace(spans)
+        
+        expectations = {
+            "tool_calls": {},
+            "in_scope": False
+        }
+        
+        # Both tool_match and param_match should return None
+        tool_feedback = tool_match(trace, expectations)
+        param_feedback = param_match(trace, expectations)
+        precision_feedback = precision(trace, expectations)
+        
+        assert tool_feedback is None
+        assert param_feedback is None
+        assert precision_feedback is None
 
 
 # Tests for token_cost scorer

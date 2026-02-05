@@ -17,6 +17,7 @@ class PostAccountNote(Tool):
     name: str = "post_account_note"
     description: str = Tool.get_tool_description(name)
     args_schema: type = PostAccountNoteInput
+    include_in_scorer_check: bool = False
 
     # Injected values (set at instantiation)
     account_number: str = ""
@@ -24,7 +25,7 @@ class PostAccountNote(Tool):
     facility_prefix: str = ""
     lob: str = ""
 
-    def _run(self, description: str) -> List[Dict[str, Any]]:
+    def _execute(self, description: str) -> List[Dict[str, Any]]:
         """Post note - uses self.account_number, etc. + description from LLM"""
         self.logger.info(f"Posting account note for account: {self.account_number}")
         self.logger.debug(f"Note content: {description[:100]}..." if len(description) > 100 else f"Note content: {description}")

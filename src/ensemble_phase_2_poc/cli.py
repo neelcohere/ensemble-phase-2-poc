@@ -139,10 +139,23 @@ def evaluate(args: argparse.Namespace) -> None:
             "expectations": {
                 "in_scope": True,
                 "tool_calls": {
-                    "get_account_data": None,
-                    "post_contractual_adjustment": {"transaction_id": "1300"},
-                    "post_account_note": None,
+                    "post_contractual_adjustment": {"transaction_id": "1300"}
                 },
+            },
+        },
+        {
+            "inputs": {
+                "input": [],
+                "custom_inputs": {
+                    "account_number": "ACC-67890",
+                    "client_name": "North Healthcare",
+                    "facility_prefix": "FAC",
+                    "lob": "Acute",
+                },
+            },
+            "expectations": {
+                "in_scope": False,
+                "tool_calls": {},
             },
         }
     ]

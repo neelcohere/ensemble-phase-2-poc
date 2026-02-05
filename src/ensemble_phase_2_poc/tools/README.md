@@ -22,6 +22,14 @@ tools/
 - **Self-Contained**: Tools are independent and can be imported individually
 - **Extensible**: New tools can be added by creating a new file following the established pattern
 - **Observable**: Built-in logging via the `logger` property
+- **Traceable**: Span attributes are automatically set when tools are executed for evaluation purposes
+
+## Scorer Check Configuration
+
+Tools have an `include_in_scorer_check` parameter that controls whether the tool is included when the scorers evaluate tool calls.
+
+- `include_in_scorer_check: bool = True`: The tool **will be counted** by scorers. Use for tools that **write** or **modify** data (e.g., `post_contractual_adjustment`)
+- `include_in_scorer_check: bool = False`: The tool **will not be counted** by scorers. Use for tools that only **read** data (e.g., `get_account_data`)
 
 ## Logging
 
@@ -31,7 +39,7 @@ All tools that extend `Tool` (from `base_tool.py`) have access to a `self.logger
 
 ```python
 class MyTool(Tool):
-    def _run(self, param: str) -> List[Dict[str, Any]]:
+    def _execute(self, param: str) -> List[Dict[str, Any]]:
         self.logger.info(f"Executing tool for account: {self.account_number}")
         self.logger.debug(f"Parameter value: {param}")
         
@@ -60,6 +68,8 @@ The default log level is `INFO`. To see debug logs, modify the level in `logger.
 
 **Schema**: `GetAccountDataInput` (no parameters - uses injected account context)
 
+**Scope Check**: `include_in_scorer_check = False` (read-only, gathering information)
+
 **Injected Parameters**:
 - `account_number`: The account identifier
 - `client_name`: The client/organization name
@@ -77,6 +87,8 @@ The default log level is `INFO`. To see debug logs, modify the level in `logger.
 **Schema**: `PostContractualAdjustmentInput`
 - `transaction_id` (str): The transaction ID to post the adjustment against
 
+**Scope Check**: `include_in_scorer_check = True` (modifies account, resolution action)
+
 **Injected Parameters**:
 - `account_number`: The account identifier
 - `client_name`: The client/organization name
@@ -93,6 +105,8 @@ The default log level is `INFO`. To see debug logs, modify the level in `logger.
 
 **Schema**: `PostAccountNoteInput`
 - `description` (str): A detailed description of the actions taken on the account
+
+**Scope Check**: `include_in_scorer_check = False` (documentation only, not a resolution action)
 
 **Injected Parameters**:
 - `account_number`: The account identifier
@@ -114,8 +128,7 @@ Example: `dispute_claim.py`
 # filepath: ensemble-phase-2-poc/src/ensemble_phase_2_poc/tools/dispute_claim.py
 from typing import List, Dict, Any
 from pydantic import BaseModel, Field
-from langchain.tools import BaseTool
-from ensemble_phase_2_poc.tools.utils import get_tool_description
+from ensemble_phase_2_poc.tools.base_tool import Tool
 
 
 class DisputeClaimInput(BaseModel):
@@ -125,12 +138,15 @@ class DisputeClaimInput(BaseModel):
     reason: str = Field(description="The reason for the dispute")
 
 
-class DisputeClaim(BaseTool):
+class DisputeClaim(Tool):
     """Dispute a claim - injected args are stored as instance attributes"""
 
     name: str = "dispute_claim"
-    description: str = get_tool_description(name)
+    description: str = Tool.get_tool_description(name)
     args_schema: type = DisputeClaimInput
+    
+    # Scorer check: True because this modifies the account (resolution action)
+    include_in_scorer_check: bool = True
 
     # Injected values (set at instantiation)
     account_number: str = ""
@@ -138,8 +154,9 @@ class DisputeClaim(BaseTool):
     facility_prefix: str = ""
     lob: str = ""
 
-    def _run(self, claim_id: str, reason: str) -> List[Dict[str, Any]]:
-        """Dispute claim implementation"""
+    def _execute(self, claim_id: str, reason: str) -> List[Dict[str, Any]]:
+        """Dispute claim implementation - override _execute, not _run"""
+        self.logger.info(f"Disputing claim {claim_id} for account: {self.account_number}")
         return [
             {
                 "status": "success",
@@ -150,7 +167,16 @@ class DisputeClaim(BaseTool):
         ]
 ```
 
-### Step 2: Update `descriptions.yaml`
+### Step 2: Configure `include_in_scorer_check`
+
+Decide whether your tool should be included in scorer evaluations:
+
+- Set to `True` if the tool represents a **resolution action** (writes/modifies data)
+- Set to `False` if the tool is **read-only** or **informational**
+
+See the [Scorer Check Configuration](#scorer-check-configuration) section for details.
+
+### Step 3: Update `descriptions.yaml`
 
 Add your tool's description to `descriptions.yaml`:
 
@@ -158,7 +184,7 @@ Add your tool's description to `descriptions.yaml`:
 dispute_claim: "Dispute a claim on the account"
 ```
 
-### Step 3: Update `__init__.py`
+### Step 4: Update `__init__.py`
 
 Add your new tool and its schema to the exports in `__init__.py`:
 

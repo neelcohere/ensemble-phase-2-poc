@@ -102,29 +102,32 @@ def _tool_match_func(trace: Trace, expectations: Dict[str, Any]) -> Optional[Fee
     """Implementation of tool_match logic. Returns None for out-of-scope correctly skipped accounts."""
 
     # Extract expectation items
-    expected_tool_calls = expectations.get("tool_calls", {})
+    expected_tool_calls = expectations["tool_calls"]
     expected_tools = set(expected_tool_calls.keys())
-    is_out_of_scope = not expectations.get("in_scope", True)
+    is_out_of_scope = not expectations["in_scope"]
     
     # Extract actual tool calls from trace
     tool_spans = trace.search_spans(span_type=SpanType.TOOL)
-    actual_tools = set(span.name for span in tool_spans)
+    # Filter out tools that are not to be included in the out-of-scope check
+    workflow_tool_calls = set(
+        span.name for span in tool_spans if span.get_attribute("include_in_scorer_check")
+    )
 
     # Handle out-of-scope accounts
     if is_out_of_scope:
-        if len(actual_tools) == 0:
+        if len(workflow_tool_calls) == 0:
             # Return None to exclude from precision calculation
             return None
         else:
             return Feedback(
                 name="tool_match",
                 value=0.0,
-                rationale=f"Out-of-scope account incorrectly attempted. Called: {sorted(actual_tools)}",
+                rationale=f"Out-of-scope account incorrectly attempted. Called: {workflow_tool_calls}",
                 metadata={"type": "business"}
             )
 
     # Compare the sets of expected and actual tool calls
-    if expected_tools == actual_tools:
+    if expected_tools == workflow_tool_calls:
         return Feedback(
             name="tool_match",
             value=1.0,
@@ -133,8 +136,8 @@ def _tool_match_func(trace: Trace, expectations: Dict[str, Any]) -> Optional[Fee
         )
 
     # Collect failure details
-    missing = expected_tools - actual_tools
-    extra = actual_tools - expected_tools
+    missing = expected_tools - workflow_tool_calls
+    extra = workflow_tool_calls - expected_tools
     details = []
     if missing:
         details.append(f"missing={sorted(missing)}")
@@ -160,8 +163,9 @@ def _param_match_func(trace: Trace, expectations: Dict[str, Any]) -> Optional[Fe
     workflow_tool_calls: Dict[str, Dict[str, Any]] = {}
     
     for span in tool_spans:
-        params = _extract_tool_params(span)
-        workflow_tool_calls[span.name] = params
+        if span.get_attribute("include_in_scorer_check"):
+            params = _extract_tool_params(span)
+            workflow_tool_calls[span.name] = params
 
     # Handle out-of-scope accounts
     if is_out_of_scope:
@@ -172,7 +176,7 @@ def _param_match_func(trace: Trace, expectations: Dict[str, Any]) -> Optional[Fe
             return Feedback(
                 name="param_match",
                 value=0.0,
-                rationale="Out-of-scope account was incorrectly attempted.",
+                rationale=f"Out-of-scope account was incorrectly attempted. Called: {workflow_tool_calls.items()}",
                 metadata={"type": "business"}
             )
 
@@ -181,10 +185,6 @@ def _param_match_func(trace: Trace, expectations: Dict[str, Any]) -> Optional[Fe
     for tool_name, expected_params in expected_tool_calls.items():
         if tool_name not in workflow_tool_calls:
             mismatches.append(f"{tool_name}: tool not called")
-            continue
-        
-        # If expected_params is None, no parameters are required for this tool. Skip parameter checking
-        if not expected_params:
             continue
         
         actual_params = workflow_tool_calls[tool_name]
