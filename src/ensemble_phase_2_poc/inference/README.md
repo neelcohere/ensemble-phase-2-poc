@@ -70,9 +70,11 @@ This ensures all agents automatically benefit from retry/backoff logic without e
 
 Set in `.env` file at project root.
 
-## Future Improvements
+## Adding New Providers or Models
 
-- [ ] Cost tracking per provider/model
-- [ ] Response caching layer
-- [ ] Enhanced error handling with fallback strategies
-- [ ] Support for additional providers (Anthropic, etc.)
+When adding new providers or models, remember to update the pricing tables in `router.py`:
+
+- `COHERE_MODEL_PRICING` – Input/output token costs per 1M tokens for Cohere models
+- `OPENAI_MODEL_PRICING` – Input/output token costs per 1M tokens for OpenAI models
+
+These tables are used by the `token_cost` scorer to calculate evaluation costs.
