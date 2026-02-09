@@ -13,6 +13,7 @@ class GetAccountData(Tool):
     name: str = "get_account_data"
     description: str = Tool.get_tool_description(name)
     args_schema: type = GetAccountDataInput
+    include_in_scorer_check: bool = False
 
     # Injected values (set at instantiation)
     account_number: str = ""
@@ -20,7 +21,7 @@ class GetAccountData(Tool):
     facility_prefix: str = ""
     lob: str = ""
 
-    def _run(self) -> List[Dict[str, Any]]:
+    def _execute(self) -> List[Dict[str, Any]]:
         """Sample output - uses self.account_number, etc."""
         self.logger.info(f"Fetching account data for account: {self.account_number}")
         self.logger.info(f"Client: {self.client_name}, Facility: {self.facility_prefix}, LOB: {self.lob}")

@@ -122,6 +122,28 @@ classDiagram
         +_run(description) List~Dict~
     }
 
+    class ChatFactory {
+        <<factory>>
+        +PROVIDER_REGISTRY dict
+        +get_model(provider, model)$ BaseChatModel
+        +get_provider_pricing(provider, model)$ tuple
+    }
+
+    class CustomChatCohere {
+        <<langchain>>
+    }
+
+    class CustomChatOpenAI {
+        <<langchain>>
+    }
+
+    class Scorers {
+        <<module>>
+        +tool_error(trace) Feedback
+        +precision(trace, expectations) List~Feedback~
+        +token_cost(trace) float
+    }
+
     ResponsesAgent <|-- LangGraphResponsesAgent
     LangGraphResponsesAgent <|-- SequentialAccountResolutionWorkflow
     LangGraphResponsesAgent <|-- BranchingAccountResolutionWorkflow
@@ -153,6 +175,11 @@ classDiagram
     LangGraphResponsesAgent ..> get_logger : uses
     BaseAgent ..> get_logger : uses
     Tool ..> get_logger : uses
+
+    ChatFactory ..> CustomChatCohere : creates
+    ChatFactory ..> CustomChatOpenAI : creates
+    BaseAgent ..> ChatFactory : uses
+    Scorers ..> ChatFactory : uses
 ```
 
 ## Setting up MLFlow server
@@ -181,34 +208,78 @@ touch .env
 ```
 For example, this project defaults to the Cohere chat API, which requires a `COHERE_API_KEY` to be set as an env var.
 
-2. Navigate to the project root and run the CLI. You can use it in the following ways:
-```
-cd path\to\root
+2. Navigate to the project root and use the CLI. The CLI has two subcommands: `run` and `evaluate`.
 
-# Use defaults (branching workflow)
-ensemble-phase-2-poc
+### Running a single workflow (`run`)
+
+Execute a single workflow with MLflow logging:
+
+```bash
+# Run with defaults (branching workflow)
+ensemble-phase-2-poc run
 
 # Run sequential workflow
-ensemble-phase-2-poc -w sequential
+ensemble-phase-2-poc run -w sequential
 
 # Full customization
-ensemble-phase-2-poc --workflow sequential --experiment my-experiment --tracking-uri http://mlflow.example.com:5000 --run-name my-test-run
+ensemble-phase-2-poc run \
+  --workflow sequential \
+  --experiment my-experiment \
+  --tracking-uri http://mlflow.example.com:5000 \
+  --run-name my-test-run
 
 # View help
-ensemble-phase-2-poc --help
+ensemble-phase-2-poc run --help
 ```
 
+
+### Running evaluation with scorers (`evaluate`)
+
+Run evaluation on a dataset with scorers (`tool_error`, `token_cost`, `precision`):
+
+```bash
+# Evaluate with defaults (branching workflow)
+ensemble-phase-2-poc evaluate
+
+# Evaluate with sequential workflow
+ensemble-phase-2-poc evaluate -w sequential
+
+# Full customization
+ensemble-phase-2-poc evaluate \
+  --workflow branching \
+  --experiment my-eval-experiment \
+  --tracking-uri http://mlflow.example.com:5000
+
+# View help
+ensemble-phase-2-poc evaluate --help
+```
+
+### Common options
+
+| Option | Short | Description | Default |
+|--------|-------|-------------|---------|
+| `--workflow` | `-w` | Workflow type (`sequential` or `branching`) | `branching` |
+| `--experiment` | `-e` | MLflow experiment name | `test-workflow` |
+| `--tracking-uri` | `-t` | MLflow tracking server URI | `http://localhost:5000` |
+| `--run-name` | `-r` | Name for the MLflow run (only for `run`) | Auto-generated with timestamp |
+
 ## Running unit tests
-1. Install all dependencies with `uv sync`. Pytest will be installed as a dev dependency by default
+**Basic Usage**
+```bash
+# Run all tests
+uv run pytest
 
-**To run unit tests**
-`pytest test/`
+# Run specific test file
+uv run pytest test/test_scorers.py
 
-**To generate a coverage report for src**
-`pytest --src test/` outputs a coverage report to your terminal
+# Run with verbose output
+uv run pytest -v
+```
+
+**Generating coverage report**
+`pytest --src test/` outputs a coverage report of all files in src to your terminal
 
 `pytest --src test/ --cov-report html` generates an html coverage report that you can open in your browser. We recommend [Live Server](https://marketplace.visualstudio.com/items?itemName=ritwickdey.LiveServer) to quickly launch a tab in your browser for viewing the report.
-
 
 ## Contributing
 1. Install all dependencies with `uv sync`

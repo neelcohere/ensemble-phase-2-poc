@@ -17,6 +17,7 @@ class PostContractualAdjustment(Tool):
     name: str = "post_contractual_adjustment"
     description: str = Tool.get_tool_description(name)
     args_schema: type = PostContractualAdjustmentInput
+    include_in_scorer_check: bool = True
 
     # Injected values (set at instantiation)
     account_number: str = ""
@@ -24,7 +25,7 @@ class PostContractualAdjustment(Tool):
     facility_prefix: str = ""
     lob: str = ""
 
-    def _run(self, transaction_id: str) -> List[Dict[str, Any]]:
+    def _execute(self, transaction_id: str) -> List[Dict[str, Any]]:
         """Post adjustment - uses self.account_number, etc. + transaction_id from LLM"""
         self.logger.info(f"Posting contractual adjustment for account: {self.account_number}, transaction: {transaction_id}")
         return [
