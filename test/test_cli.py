@@ -27,47 +27,47 @@ class TestParseArgs:
 
     def test_default_workflow_is_branching(self):
         """Default workflow is 'branching' when no args given."""
-        with patch.object(sys, "argv", ["cli"]):
+        with patch.object(sys, "argv", ["cli", "run"]):
             args = parse_args()
             assert args.workflow == "branching"
 
     def test_experiment_default(self):
         """The default experiment name is 'test-workflow'"""
-        with patch.object(sys, "argv", ["cli"]):
+        with patch.object(sys, "argv", ["cli", "run"]):
             args = parse_args()
             assert args.experiment == "test-workflow"
 
     def test_experiment_override(self):
         """The -e flag should set experiment name and override the default"""
-        with patch.object(sys, "argv", ["cli", "-e", "my-experiment"]):
+        with patch.object(sys, "argv", ["cli", "run", "-e", "my-experiment"]):
             args = parse_args()
             assert args.experiment == "my-experiment"
 
     def test_tracking_uri_default(self):
         """The default tracking URI is localhost:5001."""
-        with patch.object(sys, "argv", ["cli"]):
+        with patch.object(sys, "argv", ["cli", "run",]):
             args = parse_args()
             assert args.tracking_uri == "http://localhost:5001"
 
     def test_tracking_uri_override(self):
         """-t should set a new tracking URI."""
-        with patch.object(sys, "argv", ["cli", "-t", "http://mlflow:5000"]):
+        with patch.object(sys, "argv", ["cli", "run", "-t", "http://mlflow:5000"]):
             args = parse_args()
             assert args.tracking_uri == "http://mlflow:5000"
 
 
 class TestMain:
-    @patch("ensemble_phase_2_poc.cli.set_model")
     @patch("ensemble_phase_2_poc.cli.mlflow")
     @patch("ensemble_phase_2_poc.cli.parse_args")
     def test_main_sets_mlflow_tracking_uri_and_experiment(
-        self, mock_parse_args, mock_mlflow, mock_set_model
+        self, mock_parse_args, mock_mlflow
     ):
         """
         main() should call mlflow.set_tracking_uri and set_experiment using the same tracking_uri
         and experiment name as provided by argparse
         """
         mock_parse_args.return_value = MagicMock(
+            command="run",
             workflow="branching",
             experiment="my-exp",
             tracking_uri="http://my-uri",
