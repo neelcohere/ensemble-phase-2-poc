@@ -277,9 +277,9 @@ uv run pytest -v
 ```
 
 **Generating coverage report**
-`pytest --src test/` outputs a coverage report of all files in src to your terminal
+`pytest --cov src test/` outputs a coverage report of all files in src to your terminal
 
-`pytest --src test/ --cov-report html` generates an html coverage report that you can open in your browser. We recommend [Live Server](https://marketplace.visualstudio.com/items?itemName=ritwickdey.LiveServer) to quickly launch a tab in your browser for viewing the report.
+`pytest --cov src test/ --cov-report html` generates an html coverage report that you can open in your browser. We recommend [Live Server](https://marketplace.visualstudio.com/items?itemName=ritwickdey.LiveServer) to quickly launch a tab in your browser for viewing the report.
 
 ## Contributing
 1. Install all dependencies with `uv sync`
