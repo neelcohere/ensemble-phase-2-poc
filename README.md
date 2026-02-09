@@ -199,9 +199,16 @@ ensemble-phase-2-poc --help
 ```
 
 ## Running unit tests
-```
-uv run test/test_import.py
-```
+1. Install all dependencies with `uv sync`. Pytest will be installed as a dev dependency by default
+
+**To run unit tests**
+`pytest test/`
+
+**To generate a coverage report for src**
+`pytest --src test/` outputs a coverage report to your terminal
+
+`pytest --src test/ --cov-report html` generates an html coverage report that you can open in your browser. We recommend [Live Server](https://marketplace.visualstudio.com/items?itemName=ritwickdey.LiveServer) to quickly launch a tab in your browser for viewing the report.
+
 
 ## Contributing
 1. Install all dependencies with `uv sync`
