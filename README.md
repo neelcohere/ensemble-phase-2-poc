@@ -232,6 +232,7 @@ ensemble-phase-2-poc run \
 ensemble-phase-2-poc run --help
 ```
 
+
 ### Running evaluation with scorers (`evaluate`)
 
 Run evaluation on a dataset with scorers (`tool_error`, `token_cost`, `precision`):
@@ -263,6 +264,7 @@ ensemble-phase-2-poc evaluate --help
 | `--run-name` | `-r` | Name for the MLflow run (only for `run`) | Auto-generated with timestamp |
 
 ## Running unit tests
+**Basic Usage**
 ```bash
 # Run all tests
 uv run pytest
@@ -273,6 +275,11 @@ uv run pytest test/test_scorers.py
 # Run with verbose output
 uv run pytest -v
 ```
+
+**Generating coverage report**
+`pytest --cov src test/` outputs a coverage report for code in `src` using test cases found in `test/`
+
+`pytest --cov src test/ --cov-report html` generates an html coverage report that you can open in your browser. We recommend [Live Server](https://marketplace.visualstudio.com/items?itemName=ritwickdey.LiveServer) to quickly launch a tab in your browser for viewing the report.
 
 ## Contributing
 1. Install all dependencies with `uv sync`
