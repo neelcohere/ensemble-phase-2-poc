@@ -51,6 +51,6 @@ class Tool(BaseTool):
             descriptions = yaml.safe_load(file)
 
         if descriptions.get(name, None) is None:
-            raise ValueError(f"Prompt '{name}' not found")
+            raise ValueError(f"Prompt '{name}' not found, please include the tool description in descriptions.yaml")
 
         return descriptions.get(name)
