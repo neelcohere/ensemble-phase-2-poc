@@ -277,7 +277,7 @@ uv run pytest -v
 ```
 
 **Generating coverage report**
-`pytest --cov src test/` outputs a coverage report of all files in src to your terminal
+`pytest --cov src test/` outputs a coverage report for code in `src` using test cases found in `test/`
 
 `pytest --cov src test/ --cov-report html` generates an html coverage report that you can open in your browser. We recommend [Live Server](https://marketplace.visualstudio.com/items?itemName=ritwickdey.LiveServer) to quickly launch a tab in your browser for viewing the report.
 

@@ -4,9 +4,6 @@ import pytest
 from unittest.mock import patch, mock_open
 from ensemble_phase_2_poc.tools import GetAccountData, PostAccountNote, PostContractualAdjustment
 from ensemble_phase_2_poc.tools.base_tool import Tool
-from ensemble_phase_2_poc.tools.get_account_data import GetAccountDataInput
-from ensemble_phase_2_poc.tools.post_account_note import PostAccountNoteInput
-from ensemble_phase_2_poc.tools.post_contractual_adjustment import PostContractualAdjustmentInput
 
 
 MOCK_DESCRIPTIONS_YAML = """
